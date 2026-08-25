@@ -183,6 +183,37 @@ def cell_availability(quotes: pd.DataFrame, cells_in_basket: int) -> pd.DataFram
     return pd.DataFrame(rows)
 
 
+def enforce_contract(quotes: pd.DataFrame) -> None:
+    """Validate the raw batch before any of it becomes an index value.
+
+    Deliberately raises. CLAUDE.md is explicit that a failing data-contract test fails the
+    pipeline and that wrapping a validation in try/except to make a run go green is not
+    allowed. A parser that is wrong once is wrong systematically, so a contract violation
+    is a reason to stop and look, not to drop rows and carry on.
+    """
+    try:
+        from tests.contracts import RawQuoteSchema
+    except ImportError:
+        log.warning("pandera not installed — data contract not enforced this run")
+        return
+
+    cols = [
+        "collection_date",
+        "source",
+        "origin",
+        "destination",
+        "lead_time_days",
+        "dep_date",
+        "is_available",
+        "total_fare",
+        "currency",
+        "unavailable_reason",
+    ]
+    present = [c for c in cols if c in quotes.columns]
+    RawQuoteSchema.validate(quotes[present], lazy=True)
+    log.info("data contract passed on %d rows", len(quotes))
+
+
 def build(quotes: pd.DataFrame, route_weights: pd.DataFrame, allow_simulation: bool = False) -> dict:
     if not allow_simulation:
         reject_simulated(quotes)
@@ -191,6 +222,8 @@ def build(quotes: pd.DataFrame, route_weights: pd.DataFrame, allow_simulation: b
         log.warning("SIMULATION MODE — every output of this run is a fixture, not a measurement.")
         log.warning("=" * 78)
     quotes = normalise(quotes)
+    if not allow_simulation:
+        enforce_contract(quotes)
     dates = sorted(quotes["collection_date"].unique())
     if len(dates) < 2:
         raise SystemExit(

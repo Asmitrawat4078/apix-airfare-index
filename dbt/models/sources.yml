@@ -1,0 +1,27 @@
+version: 2
+
+sources:
+  - name: apix
+    schema: apix
+    description: >
+      The immutable raw layer. Append-only, enforced by database rule rather than
+      convention. Nothing downstream may write back here.
+    tables:
+      - name: raw_quotes
+        description: One row per (source, cell, offer) per collection run. Never updated.
+        columns:
+          - name: quote_id
+            tests: [unique, not_null]
+          - name: collection_date
+            tests: [not_null]
+          - name: is_available
+            tests: [not_null]
+          - name: lead_time_days
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [1, 7, 15, 30, 45]
+                  quote: false
+      - name: collection_runs
+      - name: source_health
+      - name: robots_log

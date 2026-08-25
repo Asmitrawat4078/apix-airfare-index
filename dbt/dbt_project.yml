@@ -1,0 +1,19 @@
+name: apix
+version: "1.0.0"
+config-version: 2
+profile: apix
+
+model-paths: ["models"]
+test-paths: ["tests"]
+
+models:
+  apix:
+    staging:
+      +materialized: view
+      +schema: staging
+    clean:
+      +materialized: table
+      +schema: clean
+    marts:
+      +materialized: table
+      +schema: marts

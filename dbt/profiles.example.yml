@@ -1,0 +1,13 @@
+# Copy to ~/.dbt/profiles.yml. DATABASE_URL components come from Supabase.
+apix:
+  target: prod
+  outputs:
+    prod:
+      type: postgres
+      host: "{{ env_var('PGHOST') }}"
+      user: "{{ env_var('PGUSER') }}"
+      password: "{{ env_var('PGPASSWORD') }}"
+      port: 5432
+      dbname: postgres
+      schema: apix
+      threads: 4
