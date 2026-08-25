@@ -1,0 +1,6 @@
+Touch this file and push to run the source probe.
+Each line below records a probe run and why it was requested.
+
+2026-08-25 — first run. Nothing has ever been collected; we do not yet know whether
+any Indian OTA will answer a GitHub Actions runner in Azure US. This is the highest-risk
+unknown in the project and everything downstream depends on the answer.

@@ -8,6 +8,14 @@ name: Probe fare sources
 # OTA re-platforms. The report is committed so the next person does not repeat the work.
 
 on:
+  # Touching .github/probe-trigger runs the probe. This exists because the probe needs to
+  # be runnable by anything that can push a commit, not only by someone clicking a button
+  # in the Actions UI — including an agent working through git alone.
+  push:
+    paths:
+      - ".github/probe-trigger"
+      - "scripts/probe_sources.py"
+      - "collector/sources/**"
   workflow_dispatch:
     inputs:
       only:
