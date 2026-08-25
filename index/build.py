@@ -23,15 +23,17 @@ import json
 import logging
 import os
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
 
 from .aggregate import aggregate, build_weights, chain_strata, resample
 from .elementary import collapse_to_items, jevons_relatives
-from .hedonic import compare_to_headline, fit as fit_hedonic
-from .imputation import impute_relatives, summarise as summarise_imputation
+from .hedonic import compare_to_headline
+from .hedonic import fit as fit_hedonic
+from .imputation import impute_relatives
+from .imputation import summarise as summarise_imputation
 from .multilateral import direct_index, drift_diagnostic, geks_jevons
 from .scenarios import HEADLINE_SCENARIO, SCENARIOS, by_name
 
@@ -42,8 +44,18 @@ RAW_DIR = REPO / "data" / "raw"
 WEIGHTS_CSV = REPO / "data" / "route_weights.csv"
 
 QUOTE_COLUMNS = [
-    "collection_date", "source", "origin", "destination", "lead_time_days", "carrier",
-    "flight_no", "dep_date", "dep_ts", "total_fare", "is_available", "unavailable_reason",
+    "collection_date",
+    "source",
+    "origin",
+    "destination",
+    "lead_time_days",
+    "carrier",
+    "flight_no",
+    "dep_date",
+    "dep_ts",
+    "total_fare",
+    "is_available",
+    "unavailable_reason",
 ]
 
 
@@ -70,8 +82,13 @@ def load_quotes_csv(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
             df["collection_date"] = f.stem
         frames.append(df)
     out = pd.concat(frames, ignore_index=True)
-    log.info("loaded %d rows from %d daily CSVs (%s .. %s)",
-             len(out), len(files), files[0].stem, files[-1].stem)
+    log.info(
+        "loaded %d rows from %d daily CSVs (%s .. %s)",
+        len(out),
+        len(files),
+        files[0].stem,
+        files[-1].stem,
+    )
     return out
 
 
@@ -97,9 +114,10 @@ def reject_simulated(df: pd.DataFrame) -> pd.DataFrame:
     anyone might mistake for a measurement. It raises rather than filtering, because
     silently dropping rows would let a half-simulated series through.
     """
-    if "is_simulated" in df.columns and df["is_simulated"].astype(str).str.lower().isin(
-        ["true", "1", "t", "yes"]
-    ).any():
+    if (
+        "is_simulated" in df.columns
+        and df["is_simulated"].astype(str).str.lower().isin(["true", "1", "t", "yes"]).any()
+    ):
         raise SystemExit(
             "REFUSED: simulated rows reached the index builder. Simulated data may be used "
             "only via --allow-simulation, which watermarks every output."
@@ -138,19 +156,30 @@ def cell_availability(quotes: pd.DataFrame, cells_in_basket: int) -> pd.DataFram
     for day, chunk in quotes.groupby("collection_date", sort=True):
         priced = chunk[chunk["is_available"] & chunk["total_fare"].notna()]
         cells = priced.groupby(["origin", "destination", "lead_time_days"]).ngroups
-        blocked = chunk[chunk["unavailable_reason"].isin(
-            ["blocked", "robots_disallowed", "rate_limited", "timeout", "parse_error"]
-        )].groupby(["origin", "destination", "lead_time_days"]).ngroups
-        sold_out = chunk[chunk["unavailable_reason"].isin(["sold_out", "no_service"])].groupby(
-            ["origin", "destination", "lead_time_days"]).ngroups
-        rows.append({
-            "collection_date": str(day),
-            "cells_priced": cells,
-            "cells_in_basket": cells_in_basket,
-            "availability_rate": cells / cells_in_basket if cells_in_basket else 0.0,
-            "cells_blocked": blocked,
-            "cells_sold_out": sold_out,
-        })
+        blocked = (
+            chunk[
+                chunk["unavailable_reason"].isin(
+                    ["blocked", "robots_disallowed", "rate_limited", "timeout", "parse_error"]
+                )
+            ]
+            .groupby(["origin", "destination", "lead_time_days"])
+            .ngroups
+        )
+        sold_out = (
+            chunk[chunk["unavailable_reason"].isin(["sold_out", "no_service"])]
+            .groupby(["origin", "destination", "lead_time_days"])
+            .ngroups
+        )
+        rows.append(
+            {
+                "collection_date": str(day),
+                "cells_priced": cells,
+                "cells_in_basket": cells_in_basket,
+                "availability_rate": cells / cells_in_basket if cells_in_basket else 0.0,
+                "cells_blocked": blocked,
+                "cells_sold_out": sold_out,
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -202,7 +231,8 @@ def build(quotes: pd.DataFrame, route_weights: pd.DataFrame, allow_simulation: b
     )
     hedonic_df = hedonic.series if hedonic else pd.DataFrame()
     comparison = (
-        compare_to_headline(hedonic_df, headline) if hedonic is not None and not headline.empty
+        compare_to_headline(hedonic_df, headline)
+        if hedonic is not None and not headline.empty
         else {"note": "hedonic model not identified yet — too few observations"}
     )
 
@@ -242,12 +272,13 @@ def build(quotes: pd.DataFrame, route_weights: pd.DataFrame, allow_simulation: b
 
 def write_outputs(result: dict, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
-    computed_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    computed_at = datetime.now(UTC).isoformat(timespec="seconds")
     sha = git_sha()
 
     for name, df in result["series"].items():
         df.assign(computed_at_utc=computed_at, code_git_sha=sha).to_csv(
-            out_dir / f"index_{name}.csv", index=False)
+            out_dir / f"index_{name}.csv", index=False
+        )
     result["band"].to_csv(out_dir / "index_band.csv", index=False)
     result["availability"].to_csv(out_dir / "availability.csv", index=False)
     result["chained"].to_csv(out_dir / "stratum_index.csv", index=False)
@@ -257,7 +288,8 @@ def write_outputs(result: dict, out_dir: Path) -> None:
     result["monthly"].to_csv(out_dir / "index_monthly.csv", index=False)
     if not result["hedonic_series"].empty:
         result["hedonic_series"].assign(computed_at_utc=computed_at).to_csv(
-            out_dir / "index_hedonic.csv", index=False)
+            out_dir / "index_hedonic.csv", index=False
+        )
 
     h = result["hedonic"]
     meta = {
@@ -270,9 +302,16 @@ def write_outputs(result: dict, out_dir: Path) -> None:
         "headline_scenario": HEADLINE_SCENARIO,
         "latest": (result["headline"].iloc[-1].to_dict() if not result["headline"].empty else None),
         "band_latest": (result["band"].iloc[-1].to_dict() if not result["band"].empty else None),
-        "hedonic": ({"formula": h.formula, "r_squared": round(h.r_squared, 4),
-                     "n_observations": h.n_observations, "diagnostics": h.diagnostics}
-                    if h else None),
+        "hedonic": (
+            {
+                "formula": h.formula,
+                "r_squared": round(h.r_squared, 4),
+                "n_observations": h.n_observations,
+                "diagnostics": h.diagnostics,
+            }
+            if h
+            else None
+        ),
         "hedonic_vs_headline": result["hedonic_vs_headline"],
         "chain_drift": result["drift"],
         "imputation_by_day": result["imputation"],
@@ -290,19 +329,48 @@ def write_postgres_vintage(result: dict) -> None:
         log.warning("DATABASE_URL not set — index values written to CSV only")
         return
 
-    computed_at = datetime.now(timezone.utc)
+    computed_at = datetime.now(UTC)
     sha = git_sha()
     rows = []
     for name, df in result["series"].items():
         for r in df.itertuples():
-            rows.append((r.collection_date, name, "jevons_headline", computed_at, 1, sha,
-                         r.index_value, r.availability_rate, r.observed_weight_share,
-                         r.strata_contributing, r.strata_in_basket, None, None))
+            rows.append(
+                (
+                    r.collection_date,
+                    name,
+                    "jevons_headline",
+                    computed_at,
+                    1,
+                    sha,
+                    r.index_value,
+                    r.availability_rate,
+                    r.observed_weight_share,
+                    r.strata_contributing,
+                    r.strata_in_basket,
+                    None,
+                    None,
+                )
+            )
     hed = result["hedonic_series"]
     if not hed.empty:
         for r in hed.itertuples():
-            rows.append((r.collection_date, "n/a", "hedonic", computed_at, 1, sha,
-                         r.hedonic_index, None, None, None, None, r.ci_low, r.ci_high))
+            rows.append(
+                (
+                    r.collection_date,
+                    "n/a",
+                    "hedonic",
+                    computed_at,
+                    1,
+                    sha,
+                    r.hedonic_index,
+                    None,
+                    None,
+                    None,
+                    None,
+                    r.ci_low,
+                    r.ci_high,
+                )
+            )
 
     with psycopg.connect(dsn, connect_timeout=20) as conn, conn.cursor() as cur:
         cur.executemany(
@@ -324,9 +392,12 @@ def main() -> None:
     ap.add_argument("--source", choices=["csv", "postgres"], default="csv")
     ap.add_argument("--out", default="data/index")
     ap.add_argument("--no-db-write", action="store_true")
-    ap.add_argument("--allow-simulation", action="store_true",
-                    help="build from data/_simulation/ — outputs are watermarked and must "
-                         "never be published or shown without the watermark")
+    ap.add_argument(
+        "--allow-simulation",
+        action="store_true",
+        help="build from data/_simulation/ — outputs are watermarked and must "
+        "never be published or shown without the watermark",
+    )
     ap.add_argument("--raw-dir", default=None)
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)-7s %(name)-22s %(message)s")
@@ -354,7 +425,7 @@ def main() -> None:
 
     head = result["headline"]
     band = result["band"]
-    print("\n=== APIx headline (scenario: %s) ===" % HEADLINE_SCENARIO)
+    print(f"\n=== APIx headline (scenario: {HEADLINE_SCENARIO}) ===")
     print(head.tail(10).to_string(index=False))
     print("\n=== sensitivity band across lead-time scenarios ===")
     print(band.tail(10).to_string(index=False))

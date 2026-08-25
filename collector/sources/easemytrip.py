@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
-from .base import Cell, Source, SourceSpec, register, harvest_offers_from_json, harvest_offers_from_dom
+from .base import Cell, Source, SourceSpec, harvest_offers_from_dom, harvest_offers_from_json, register
 
 CITY_NAMES = {
-    "DEL": "Delhi", "BOM": "Mumbai", "BLR": "Bengaluru", "HYD": "Hyderabad",
-    "CCU": "Kolkata", "MAA": "Chennai", "AMD": "Ahmedabad", "PNQ": "Pune",
-    "GAU": "Guwahati", "GOI": "Goa", "COK": "Kochi", "JAI": "Jaipur",
+    "DEL": "Delhi",
+    "BOM": "Mumbai",
+    "BLR": "Bengaluru",
+    "HYD": "Hyderabad",
+    "CCU": "Kolkata",
+    "MAA": "Chennai",
+    "AMD": "Ahmedabad",
+    "PNQ": "Pune",
+    "GAU": "Guwahati",
+    "GOI": "Goa",
+    "COK": "Kochi",
+    "JAI": "Jaipur",
 }
 
 
@@ -20,7 +29,7 @@ class EaseMyTrip(Source):
         needs_browser=True,
         confidence="unverified",
         notes="Direct OTA. Independent of the ixigo aggregation, so a genuine second "
-              "reading rather than the same underlying feed seen twice.",
+        "reading rather than the same underlying feed seen twice.",
     )
 
     def search_url(self, cell: Cell) -> str:

@@ -21,8 +21,8 @@ from urllib.parse import urlparse
 
 import httpx
 
-from .robots import RobotsGate
 from .ratelimit import DomainRateLimiter
+from .robots import RobotsGate
 from .schema import UnavailableReason
 
 log = logging.getLogger("apix.fetch")
@@ -90,7 +90,7 @@ class PoliteClient:
         self.timeout = timeout
         self._client: httpx.AsyncClient | None = None
 
-    async def __aenter__(self) -> "PoliteClient":
+    async def __aenter__(self) -> PoliteClient:
         self._client = httpx.AsyncClient(
             timeout=self.timeout,
             follow_redirects=True,
@@ -116,7 +116,9 @@ class PoliteClient:
                 return f"challenge marker {marker!r} in response body"
         return None
 
-    async def get(self, url: str, *, headers: dict | None = None, json_body: dict | None = None) -> FetchResult:
+    async def get(
+        self, url: str, *, headers: dict | None = None, json_body: dict | None = None
+    ) -> FetchResult:
         """Fetch one URL under the full policy. Raises Blocked rather than working around a wall."""
         decision = self.robots.check(url)
         if not decision.allowed:

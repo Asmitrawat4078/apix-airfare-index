@@ -7,7 +7,7 @@ around it. Enable only if the probe reports a clean pass.
 
 from __future__ import annotations
 
-from .base import Cell, Source, SourceSpec, register, harvest_offers_from_json, harvest_offers_from_dom
+from .base import Cell, Source, SourceSpec, harvest_offers_from_dom, harvest_offers_from_json, register
 
 
 @register
@@ -19,7 +19,7 @@ class Goibibo(Source):
         needs_browser=True,
         confidence="unverified",
         notes="Disabled pending a clean probe. If it walls us, that is the site's answer "
-              "and we record it as blocked rather than evading it.",
+        "and we record it as blocked rather than evading it.",
     )
 
     def search_url(self, cell: Cell) -> str:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .base import Cell, Source, SourceSpec, register, harvest_offers_from_json, harvest_offers_from_dom
+from .base import Cell, Source, SourceSpec, harvest_offers_from_dom, harvest_offers_from_json, register
 
 
 @register
@@ -14,7 +14,7 @@ class Cleartrip(Source):
         needs_browser=True,
         confidence="unverified",
         notes="Third reading. Kept disabled-by-default in the runner until the first two "
-              "are boring — adding a flaky third source is a regression, not progress.",
+        "are boring — adding a flaky third source is a regression, not progress.",
     )
 
     def search_url(self, cell: Cell) -> str:

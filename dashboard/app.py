@@ -104,7 +104,7 @@ c2.metric(
     "Availability rate",
     f"{latest.availability_rate:.1%}",
     help="Share of the 120 basket cells that returned a real quote. Read this with the index "
-         "level, always. An index built on 40 cells is not the same claim as one built on 118.",
+    "level, always. An index built on 40 cells is not the same claim as one built on 118.",
 )
 c3.metric(
     "Directly observed",
@@ -115,7 +115,7 @@ c4.metric(
     "Sensitivity band",
     f"±{band_latest.band_width_pts / 2:.2f} pts" if band_latest is not None else "—",
     help="Spread across the three lead-time weighting scenarios. This is the uncertainty "
-         "introduced by the one input no public Indian source provides.",
+    "introduced by the one input no public Indian source provides.",
 )
 c5.metric("Collection days", f"{meta.get('collection_days', len(headline))}")
 
@@ -128,10 +128,18 @@ if latest.availability_rate < 0.8:
         icon="⚠",
     )
 
-tabs = st.tabs([
-    "Index & band", "Lead-time curve", "Route heatmap", "Availability",
-    "Robustness", "CPI benchmark", "Collection health", "Methodology",
-])
+tabs = st.tabs(
+    [
+        "Index & band",
+        "Lead-time curve",
+        "Route heatmap",
+        "Availability",
+        "Robustness",
+        "CPI benchmark",
+        "Collection health",
+        "Methodology",
+    ]
+)
 
 
 # ------------------------------------------------------------------ 1. index & band
@@ -140,24 +148,57 @@ with tabs[0]:
     if band is not None and not band.empty:
         b = band.copy()
         b["collection_date"] = pd.to_datetime(b["collection_date"])
-        fig.add_trace(go.Scatter(x=b.collection_date, y=b.band_high, line=dict(width=0),
-                                 showlegend=False, hoverinfo="skip"))
-        fig.add_trace(go.Scatter(x=b.collection_date, y=b.band_low, fill="tonexty",
-                                 fillcolor=BAND, line=dict(width=0),
-                                 name="Lead-time scenario band"))
-    fig.add_trace(go.Scatter(x=headline.collection_date, y=headline.index_value,
-                             name="Chained Jevons (headline, uniform)",
-                             line=dict(color=HEADLINE, width=3)))
-    fig.add_trace(go.Bar(x=headline.collection_date, y=headline.availability_rate,
-                         name="Availability rate", marker_color=MUTED, opacity=0.28),
-                  secondary_y=True)
-    fig.add_hline(y=100, line_dash="dot", line_color=MUTED,
-                  annotation_text="base = 100", annotation_position="right")
+        fig.add_trace(
+            go.Scatter(
+                x=b.collection_date,
+                y=b.band_high,
+                line=dict(width=0),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=b.collection_date,
+                y=b.band_low,
+                fill="tonexty",
+                fillcolor=BAND,
+                line=dict(width=0),
+                name="Lead-time scenario band",
+            )
+        )
+    fig.add_trace(
+        go.Scatter(
+            x=headline.collection_date,
+            y=headline.index_value,
+            name="Chained Jevons (headline, uniform)",
+            line=dict(color=HEADLINE, width=3),
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            x=headline.collection_date,
+            y=headline.availability_rate,
+            name="Availability rate",
+            marker_color=MUTED,
+            opacity=0.28,
+        ),
+        secondary_y=True,
+    )
+    fig.add_hline(
+        y=100,
+        line_dash="dot",
+        line_color=MUTED,
+        annotation_text="base = 100",
+        annotation_position="right",
+    )
     fig.update_yaxes(title_text="Index level", secondary_y=False)
-    fig.update_yaxes(title_text="Availability", tickformat=".0%", range=[0, 1.6],
-                     secondary_y=True, showgrid=False)
-    fig.update_layout(height=520, hovermode="x unified", margin=dict(t=30, b=10),
-                      legend=dict(orientation="h", y=1.12))
+    fig.update_yaxes(
+        title_text="Availability", tickformat=".0%", range=[0, 1.6], secondary_y=True, showgrid=False
+    )
+    fig.update_layout(
+        height=520, hovermode="x unified", margin=dict(t=30, b=10), legend=dict(orientation="h", y=1.12)
+    )
     st.plotly_chart(fig, use_container_width=True)
     st.caption(
         "The availability rate is drawn on the same chart on purpose. When the bars dip, the "
@@ -194,10 +235,21 @@ with tabs[1]:
         palette = {1: "#b91c1c", 7: "#c2410c", 15: "#a16207", 30: "#047857", 45: "#1d4ed8"}
         for lt in sorted(by_lt.lead_time_days.unique()):
             d = by_lt[by_lt.lead_time_days == lt]
-            fig.add_trace(go.Scatter(x=d.collection_date, y=d.stratum_index, name=f"T+{int(lt)}",
-                                     line=dict(color=palette.get(int(lt), MUTED), width=2)))
-        fig.update_layout(height=460, hovermode="x unified", yaxis_title="Stratum index level",
-                          legend=dict(orientation="h", y=1.1), margin=dict(t=30))
+            fig.add_trace(
+                go.Scatter(
+                    x=d.collection_date,
+                    y=d.stratum_index,
+                    name=f"T+{int(lt)}",
+                    line=dict(color=palette.get(int(lt), MUTED), width=2),
+                )
+            )
+        fig.update_layout(
+            height=460,
+            hovermode="x unified",
+            yaxis_title="Stratum index level",
+            legend=dict(orientation="h", y=1.1),
+            margin=dict(t=30),
+        )
         st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("#### Fare level by lead time (all routes, latest day)")
@@ -214,12 +266,19 @@ with tabs[2]:
         s = strata.copy()
         s["collection_date"] = pd.to_datetime(s["collection_date"])
         s["route"] = s.origin + "→" + s.destination
-        piv = s.pivot_table(index="route", columns="collection_date",
-                            values="stratum_index", aggfunc="mean")
-        fig = go.Figure(go.Heatmap(
-            z=piv.values, x=piv.columns, y=piv.index, colorscale="RdBu_r", zmid=100,
-            colorbar=dict(title="Index"),
-        ))
+        piv = s.pivot_table(
+            index="route", columns="collection_date", values="stratum_index", aggfunc="mean"
+        )
+        fig = go.Figure(
+            go.Heatmap(
+                z=piv.values,
+                x=piv.columns,
+                y=piv.index,
+                colorscale="RdBu_r",
+                zmid=100,
+                colorbar=dict(title="Index"),
+            )
+        )
         fig.update_layout(height=760, margin=dict(t=30, l=10))
         st.plotly_chart(fig, use_container_width=True)
         st.caption(
@@ -236,15 +295,33 @@ with tabs[3]:
         a = avail.copy()
         a["collection_date"] = pd.to_datetime(a["collection_date"])
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=a.collection_date, y=a.cells_priced, name="Priced",
-                             marker_color="#047857"))
-        fig.add_trace(go.Bar(x=a.collection_date, y=a.cells_sold_out, name="Sold out (market signal)",
-                             marker_color=WARN))
-        fig.add_trace(go.Bar(x=a.collection_date, y=a.cells_blocked, name="Blocked (our failure)",
-                             marker_color="#b91c1c"))
-        fig.update_layout(barmode="stack", height=440, hovermode="x unified",
-                          yaxis_title="Basket cells", legend=dict(orientation="h", y=1.12),
-                          margin=dict(t=30))
+        fig.add_trace(
+            go.Bar(x=a.collection_date, y=a.cells_priced, name="Priced", marker_color="#047857")
+        )
+        fig.add_trace(
+            go.Bar(
+                x=a.collection_date,
+                y=a.cells_sold_out,
+                name="Sold out (market signal)",
+                marker_color=WARN,
+            )
+        )
+        fig.add_trace(
+            go.Bar(
+                x=a.collection_date,
+                y=a.cells_blocked,
+                name="Blocked (our failure)",
+                marker_color="#b91c1c",
+            )
+        )
+        fig.update_layout(
+            barmode="stack",
+            height=440,
+            hovermode="x unified",
+            yaxis_title="Basket cells",
+            legend=dict(orientation="h", y=1.12),
+            margin=dict(t=30),
+        )
         st.plotly_chart(fig, use_container_width=True)
     st.info(
         "**Sold out and blocked are opposite facts and are never merged.** A sold-out cell is "
@@ -268,27 +345,70 @@ with tabs[3]:
 with tabs[4]:
     st.markdown("#### Four constructions of the same thing")
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=headline.collection_date, y=headline.index_value,
-                             name="Chained Jevons (headline)", line=dict(color=HEADLINE, width=3)))
+    fig.add_trace(
+        go.Scatter(
+            x=headline.collection_date,
+            y=headline.index_value,
+            name="Chained Jevons (headline)",
+            line=dict(color=HEADLINE, width=3),
+        )
+    )
     if geks is not None and not geks.empty:
-        fig.add_trace(go.Scatter(x=geks.collection_date, y=geks.geks_index,
-                                 name="GEKS-Jevons (multilateral)", line=dict(color=GEKS, width=2)))
+        fig.add_trace(
+            go.Scatter(
+                x=geks.collection_date,
+                y=geks.geks_index,
+                name="GEKS-Jevons (multilateral)",
+                line=dict(color=GEKS, width=2),
+            )
+        )
     if direct is not None and not direct.empty:
-        fig.add_trace(go.Scatter(x=direct.collection_date, y=direct.direct_index,
-                                 name="Direct fixed-base", line=dict(color=MUTED, width=2, dash="dot")))
+        fig.add_trace(
+            go.Scatter(
+                x=direct.collection_date,
+                y=direct.direct_index,
+                name="Direct fixed-base",
+                line=dict(color=MUTED, width=2, dash="dot"),
+            )
+        )
     if hedonic is not None and not hedonic.empty:
         h = hedonic.copy()
         h["collection_date"] = pd.to_datetime(h["collection_date"])
-        fig.add_trace(go.Scatter(x=h.collection_date, y=h.hedonic_index,
-                                 name="Hedonic time-dummy", line=dict(color=HEDONIC, width=2)))
+        fig.add_trace(
+            go.Scatter(
+                x=h.collection_date,
+                y=h.hedonic_index,
+                name="Hedonic time-dummy",
+                line=dict(color=HEDONIC, width=2),
+            )
+        )
         if "ci_high" in h.columns:
-            fig.add_trace(go.Scatter(x=h.collection_date, y=h.ci_high, line=dict(width=0),
-                                     showlegend=False, hoverinfo="skip"))
-            fig.add_trace(go.Scatter(x=h.collection_date, y=h.ci_low, fill="tonexty",
-                                     fillcolor="rgba(194,65,12,0.10)", line=dict(width=0),
-                                     name="Hedonic 95% interval"))
-    fig.update_layout(height=520, hovermode="x unified", yaxis_title="Index level",
-                      legend=dict(orientation="h", y=1.12), margin=dict(t=30))
+            fig.add_trace(
+                go.Scatter(
+                    x=h.collection_date,
+                    y=h.ci_high,
+                    line=dict(width=0),
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=h.collection_date,
+                    y=h.ci_low,
+                    fill="tonexty",
+                    fillcolor="rgba(194,65,12,0.10)",
+                    line=dict(width=0),
+                    name="Hedonic 95% interval",
+                )
+            )
+    fig.update_layout(
+        height=520,
+        hovermode="x unified",
+        yaxis_title="Index level",
+        legend=dict(orientation="h", y=1.12),
+        margin=dict(t=30),
+    )
     st.plotly_chart(fig, use_container_width=True)
 
     d1, d2 = st.columns(2)
@@ -347,13 +467,23 @@ with tabs[6]:
     if health:
         h = pd.DataFrame(health)
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=pd.to_datetime(h.collection_date), y=h.availability_rate,
-                                 mode="lines+markers", name="Availability",
-                                 line=dict(color=HEADLINE, width=2)))
-        fig.add_hline(y=0.8, line_dash="dash", line_color=WARN,
-                      annotation_text="80% floor", annotation_position="right")
-        fig.update_layout(height=360, yaxis_tickformat=".0%", yaxis_range=[0, 1],
-                          margin=dict(t=30))
+        fig.add_trace(
+            go.Scatter(
+                x=pd.to_datetime(h.collection_date),
+                y=h.availability_rate,
+                mode="lines+markers",
+                name="Availability",
+                line=dict(color=HEADLINE, width=2),
+            )
+        )
+        fig.add_hline(
+            y=0.8,
+            line_dash="dash",
+            line_color=WARN,
+            annotation_text="80% floor",
+            annotation_position="right",
+        )
+        fig.update_layout(height=360, yaxis_tickformat=".0%", yaxis_range=[0, 1], margin=dict(t=30))
         st.plotly_chart(fig, use_container_width=True)
         st.dataframe(h, use_container_width=True)
 

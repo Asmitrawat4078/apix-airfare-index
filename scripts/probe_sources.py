@@ -25,15 +25,14 @@ import json
 import logging
 import re
 import sys
-from dataclasses import dataclass, field, asdict
-from datetime import date, datetime, timedelta, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from urllib.parse import urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from collector.fetch import CONTACT_EMAIL, USER_AGENT  # noqa: E402
 from collector.robots import RobotsGate  # noqa: E402
-from collector.fetch import USER_AGENT, CONTACT_EMAIL  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 log = logging.getLogger("apix.probe")
@@ -126,46 +125,53 @@ def build_targets(dep: date) -> list[SourceProbe]:
     """Candidate sources. Each is a *public search results page* — the same URL a
     traveller would land on. No accounts, no internal APIs guessed at, no deep links
     into anything that isn't linked from the site's own search form."""
-    d_iso = dep.isoformat()
     d_ddmmyyyy = dep.strftime("%d%m%Y")
     d_dd_mm_yyyy = dep.strftime("%d/%m/%Y")
 
     return [
         SourceProbe(
-            "ixigo", "www.ixigo.com",
+            "ixigo",
+            "www.ixigo.com",
             f"https://www.ixigo.com/search/result/flight?from=DEL&to=BOM&date={dep.strftime('%d%m%Y')}"
             f"&adults=1&children=0&infants=0&class=e&source=Search%20Form",
         ),
         SourceProbe(
-            "easemytrip", "flight.easemytrip.com",
+            "easemytrip",
+            "flight.easemytrip.com",
             f"https://flight.easemytrip.com/FlightList/Index?srch=DEL-Delhi-India|BOM-Mumbai-India|{d_dd_mm_yyyy}"
             f"&px=1-0-0&cbn=0&ar=undefined&isow=true&isdm=true&lang=en-us&IsDoubleSeat=false&CCODE=IN&curr=INR",
         ),
         SourceProbe(
-            "cleartrip", "www.cleartrip.com",
+            "cleartrip",
+            "www.cleartrip.com",
             f"https://www.cleartrip.com/flights/results?adults=1&childs=0&infants=0&class=Economy"
             f"&depart_date={dep.strftime('%d/%m/%Y')}&from=DEL&to=BOM&intl=n&sd=&sft=",
         ),
         SourceProbe(
-            "yatra", "www.yatra.com",
+            "yatra",
+            "www.yatra.com",
             f"https://www.yatra.com/air-search-ui/dom2/trigger?type=O&viewName=normal&flight_depart_date={dep.strftime('%d/%m/%Y')}"
             f"&class=Economy&adults=1&childs=0&infants=0&origin=DEL&destination=BOM&flexi=0&ADT=1&CHD=0&INF=0",
         ),
         SourceProbe(
-            "goibibo", "www.goibibo.com",
+            "goibibo",
+            "www.goibibo.com",
             f"https://www.goibibo.com/flights/air-DEL-BOM-{d_ddmmyyyy}--1-0-0-E-D/",
         ),
         SourceProbe(
-            "makemytrip", "www.makemytrip.com",
+            "makemytrip",
+            "www.makemytrip.com",
             f"https://www.makemytrip.com/flight/search?itinerary=DEL-BOM-{dep.strftime('%d/%m/%Y')}"
             f"&tripType=O&paxType=A-1_C-0_I-0&intl=false&cabinClass=E",
         ),
         SourceProbe(
-            "spicejet", "book.spicejet.com",
+            "spicejet",
+            "book.spicejet.com",
             "https://book.spicejet.com/",
         ),
         SourceProbe(
-            "akasaair", "www.akasaair.com",
+            "akasaair",
+            "www.akasaair.com",
             "https://www.akasaair.com/",
         ),
     ]
@@ -241,7 +247,8 @@ async def probe_one(browser, probe: SourceProbe, gate: RobotsGate, settle_second
         probe.page_title = (await page.title())[:120]
         content = (await page.content()).lower()
         probe.bot_wall = any(
-            m in content[:8000] for m in ("captcha", "unusual traffic", "access denied", "checking your browser")
+            m in content[:8000]
+            for m in ("captcha", "unusual traffic", "access denied", "checking your browser")
         )
     except Exception as exc:  # noqa: BLE001
         probe.error = f"{type(exc).__name__}: {exc}"[:300]
@@ -263,7 +270,10 @@ async def probe_one(browser, probe: SourceProbe, gate: RobotsGate, settle_second
 
     log.info(
         "probe source=%-12s verdict=%-22s status=%s endpoints=%d top=%s",
-        probe.name, probe.verdict, probe.page_status, len(probe.endpoints),
+        probe.name,
+        probe.verdict,
+        probe.page_status,
+        len(probe.endpoints),
         probe.endpoints[0].url if probe.endpoints else "-",
     )
     return probe
@@ -296,7 +306,7 @@ async def main() -> None:
         await browser.close()
 
     report = {
-        "probed_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "probed_at_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "departure_date_probed": dep.isoformat(),
         "user_agent": UA,
         "runner": {"note": "run this where collection runs — geography changes the answer"},

@@ -71,11 +71,13 @@ def direct_index(items: pd.DataFrame, dates: list[str]) -> pd.DataFrame:
                 items[items["collection_date"] == base], on=ITEM_KEY, how="inner"
             )
         )
-        rows.append({
-            "collection_date": d,
-            "direct_index": BASE_VALUE * rel if rel is not None else np.nan,
-            "matched_vs_base": matched,
-        })
+        rows.append(
+            {
+                "collection_date": d,
+                "direct_index": BASE_VALUE * rel if rel is not None else np.nan,
+                "matched_vs_base": matched,
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -104,7 +106,7 @@ def geks_jevons(items: pd.DataFrame, dates: list[str], window: int = 25) -> pd.D
     items["collection_date"] = items["collection_date"].astype(str)
 
     def geks_for(window_days: list[str]) -> dict[str, float]:
-        n = len(window_days)
+        # (window length is implicit in the permutations below)
         # Cache every bilateral pair once: O(n^2) merges, and n is the window, not the series.
         pair: dict[tuple[str, str], float] = {}
         for a, b in itertools.permutations(window_days, 2):
@@ -133,7 +135,7 @@ def geks_jevons(items: pd.DataFrame, dates: list[str], window: int = 25) -> pd.D
 
     # Roll forward one day at a time, mean-splicing each new window onto the existing level.
     for end in range(window + 1, len(dates) + 1):
-        w = dates[end - window:end]
+        w = dates[end - window : end]
         g = geks_for(w)
         overlap = [d for d in w[:-1] if d in levels and not np.isnan(g.get(d, np.nan))]
         new_day = w[-1]
@@ -144,9 +146,7 @@ def geks_jevons(items: pd.DataFrame, dates: list[str], window: int = 25) -> pd.D
         scale = float(np.exp(np.mean(np.log(ratios)))) if ratios else 1.0
         levels[new_day] = BASE_VALUE * g[new_day] * scale
 
-    return pd.DataFrame(
-        [{"collection_date": d, "geks_index": levels.get(d, np.nan)} for d in dates]
-    )
+    return pd.DataFrame([{"collection_date": d, "geks_index": levels.get(d, np.nan)} for d in dates])
 
 
 def drift_diagnostic(chained: pd.DataFrame, geks: pd.DataFrame, direct: pd.DataFrame) -> dict:
@@ -158,7 +158,8 @@ def drift_diagnostic(chained: pd.DataFrame, geks: pd.DataFrame, direct: pd.DataF
     the moment to make GEKS the headline, and we will be able to see it coming.
     """
     m = chained.merge(geks, on="collection_date", how="inner").merge(
-        direct, on="collection_date", how="inner")
+        direct, on="collection_date", how="inner"
+    )
     m = m.dropna(subset=["index_value", "geks_index"])
     if len(m) < 3:
         return {"n": len(m), "note": "too few overlapping days to assess drift"}
@@ -171,15 +172,18 @@ def drift_diagnostic(chained: pd.DataFrame, geks: pd.DataFrame, direct: pd.DataF
         "n": int(len(m)),
         "final_chained": round(float(m["index_value"].iloc[-1]), 4),
         "final_geks": round(float(m["geks_index"].iloc[-1]), 4),
-        "final_direct": (round(float(m["direct_index"].iloc[-1]), 4)
-                         if not np.isnan(m["direct_index"].iloc[-1]) else None),
+        "final_direct": (
+            round(float(m["direct_index"].iloc[-1]), 4)
+            if not np.isnan(m["direct_index"].iloc[-1])
+            else None
+        ),
         "mean_abs_gap_pts": round(float(gap.abs().mean()), 4),
         "final_gap_pts": round(float(gap.iloc[-1]), 4),
         "gap_trend_pts_per_day": round(slope, 5),
         "interpretation": (
             "gap growing steadily with series length — consistent with chain drift; "
             "consider promoting GEKS to headline"
-            if abs(slope) > 0.05 else
-            "no systematic trend in the gap — chaining is behaving"
+            if abs(slope) > 0.05
+            else "no systematic trend in the gap — chaining is behaving"
         ),
     }

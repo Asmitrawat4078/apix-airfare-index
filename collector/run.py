@@ -30,19 +30,18 @@ import logging
 import os
 import random
 import sys
-from dataclasses import asdict
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from .config import load_basket
 from .fetch import CONTACT_EMAIL, USER_AGENT
-from .robots import RobotsGate
 from .ratelimit import DomainRateLimiter
+from .robots import RobotsGate
 from .schema import Quote, UnavailableReason
 from .sources import get_enabled
 from .sources.base import Cell, Source
-from .storage import RunStats, REASON_TO_STAT, new_run_id, write_csv, write_postgres
+from .storage import REASON_TO_STAT, RunStats, new_run_id, write_csv, write_postgres
 
 IST = ZoneInfo("Asia/Kolkata")
 REPO = Path(__file__).resolve().parents[1]
@@ -54,9 +53,15 @@ log = logging.getLogger("apix.run")
 # "something went wrong". Getting this distinction right is the difference between an
 # honest availability rate and a decorative one.
 SOLD_OUT_MARKERS = (
-    "no flights found", "no flights available", "sold out", "no results",
-    "we couldn't find any flights", "no direct flights", "0 flights",
-    "try changing your search", "no matching flights",
+    "no flights found",
+    "no flights available",
+    "sold out",
+    "no results",
+    "we couldn't find any flights",
+    "no direct flights",
+    "0 flights",
+    "try changing your search",
+    "no matching flights",
 )
 
 
@@ -86,12 +91,13 @@ async def collect_cell(
     decision = gate.check(url)
     if not decision.allowed:
         log.warning("cell=%s source=%s robots disallowed — skipping", cell.cell_id, source.spec.name)
-        return [source.unavailable(cell, url, UnavailableReason.ROBOTS_DISALLOWED,
-                                   decision.reason, run_id)]
+        return [
+            source.unavailable(cell, url, UnavailableReason.ROBOTS_DISALLOWED, decision.reason, run_id)
+        ]
     limiter.honour_crawl_delay(source.spec.domain, decision.crawl_delay)
     await limiter.acquire(source.spec.domain)
 
-    collected_at = datetime.now(timezone.utc)
+    collected_at = datetime.now(UTC)
     json_offers: list[dict] = []
     context = await browser.new_context(
         user_agent=USER_AGENT.format(repo="apix", email=CONTACT_EMAIL),
@@ -132,8 +138,7 @@ async def collect_cell(
     except Exception as exc:  # noqa: BLE001
         log.warning("cell=%s source=%s navigation failed: %s", cell.cell_id, source.spec.name, exc)
         await context.close()
-        reason = (UnavailableReason.TIMEOUT if "imeout" in str(exc)
-                  else UnavailableReason.PARSE_ERROR)
+        reason = UnavailableReason.TIMEOUT if "imeout" in str(exc) else UnavailableReason.PARSE_ERROR
         stats.note(source.spec.name, REASON_TO_STAT[reason])
         return [source.unavailable(cell, url, reason, str(exc)[:400], run_id)]
     finally:
@@ -142,13 +147,21 @@ async def collect_cell(
 
     lowered = html[:20_000].lower()
 
-    if any(m in lowered for m in ("captcha", "unusual traffic", "access denied",
-                                 "checking your browser", "px-captcha")):
-        log.warning("cell=%s source=%s bot wall — recording blocked, not working around it",
-                    cell.cell_id, source.spec.name)
+    if any(
+        m in lowered
+        for m in ("captcha", "unusual traffic", "access denied", "checking your browser", "px-captcha")
+    ):
+        log.warning(
+            "cell=%s source=%s bot wall — recording blocked, not working around it",
+            cell.cell_id,
+            source.spec.name,
+        )
         stats.note(source.spec.name, "blocked_count")
-        return [source.unavailable(cell, url, UnavailableReason.BLOCKED,
-                                   f"challenge page at HTTP {status}", run_id)]
+        return [
+            source.unavailable(
+                cell, url, UnavailableReason.BLOCKED, f"challenge page at HTTP {status}", run_id
+            )
+        ]
 
     offers = json_offers or source.extract_from_dom(html, cell)
     strategy = "json" if json_offers else ("dom" if offers else "none")
@@ -157,25 +170,51 @@ async def collect_cell(
         if any(m in lowered for m in SOLD_OUT_MARKERS):
             log.info("cell=%s source=%s reports no flights — sold_out", cell.cell_id, source.spec.name)
             stats.note(source.spec.name, "sold_out_count")
-            return [source.unavailable(cell, url, UnavailableReason.SOLD_OUT,
-                                       "page reported no available flights", run_id)]
-        log.warning("cell=%s source=%s page loaded (HTTP %s) but nothing parsed — parse_error",
-                    cell.cell_id, source.spec.name, status)
+            return [
+                source.unavailable(
+                    cell, url, UnavailableReason.SOLD_OUT, "page reported no available flights", run_id
+                )
+            ]
+        log.warning(
+            "cell=%s source=%s page loaded (HTTP %s) but nothing parsed — parse_error",
+            cell.cell_id,
+            source.spec.name,
+            status,
+        )
         stats.note(source.spec.name, "parse_error_count")
-        return [source.unavailable(cell, url, UnavailableReason.PARSE_ERROR,
-                                   f"HTTP {status}, {len(html)} bytes, no offers matched", run_id)]
+        return [
+            source.unavailable(
+                cell,
+                url,
+                UnavailableReason.PARSE_ERROR,
+                f"HTTP {status}, {len(html)} bytes, no offers matched",
+                run_id,
+            )
+        ]
 
     quotes = source.to_quotes(offers, cell, url, collected_at, run_id)
     if not quotes:
         stats.note(source.spec.name, "parse_error_count")
-        return [source.unavailable(cell, url, UnavailableReason.PARSE_ERROR,
-                                   "offers matched but none produced a valid fare", run_id)]
+        return [
+            source.unavailable(
+                cell,
+                url,
+                UnavailableReason.PARSE_ERROR,
+                "offers matched but none produced a valid fare",
+                run_id,
+            )
+        ]
 
     stats.note(source.spec.name, "cells_available")
     stats.note(source.spec.name, "quotes_written", len(quotes))
-    log.info("cell=%s source=%s strategy=%s quotes=%d cheapest=%s",
-             cell.cell_id, source.spec.name, strategy, len(quotes),
-             min(q.total_fare for q in quotes))
+    log.info(
+        "cell=%s source=%s strategy=%s quotes=%d cheapest=%s",
+        cell.cell_id,
+        source.spec.name,
+        strategy,
+        len(quotes),
+        min(q.total_fare for q in quotes),
+    )
     return quotes
 
 
@@ -198,20 +237,27 @@ async def run(args: argparse.Namespace) -> int:
     stats = RunStats(
         run_id=run_id,
         collection_date=collection_day.isoformat(),
-        started_at_utc=datetime.now(timezone.utc),
+        started_at_utc=datetime.now(UTC),
         cells_expected=len(cells),
     )
 
     log.info("=" * 78)
     log.info("APIx collection run %s", run_id)
-    log.info("basket v%d | collection day %s IST | %d cells | sources: %s",
-             basket.version, collection_day, len(cells),
-             ", ".join(f"{s.spec.name}({s.spec.confidence})" for s in sources))
+    log.info(
+        "basket v%d | collection day %s IST | %d cells | sources: %s",
+        basket.version,
+        collection_day,
+        len(cells),
+        ", ".join(f"{s.spec.name}({s.spec.confidence})" for s in sources),
+    )
     for s in sources:
         if s.spec.confidence != "verified":
-            log.warning("source %s is marked %s — it has not been confirmed working from "
-                        "this machine. Run scripts/probe_sources.py here.",
-                        s.spec.name, s.spec.confidence)
+            log.warning(
+                "source %s is marked %s — it has not been confirmed working from "
+                "this machine. Run scripts/probe_sources.py here.",
+                s.spec.name,
+                s.spec.confidence,
+            )
     log.info("=" * 78)
 
     if args.jitter and basket.randomisation_window_minutes:
@@ -231,14 +277,20 @@ async def run(args: argparse.Namespace) -> int:
         try:
             for i, cell in enumerate(cells, 1):
                 for source in sources:
-                    quotes = await collect_cell(browser, source, cell, gate, limiter,
-                                                run_id, args.settle, stats)
+                    quotes = await collect_cell(
+                        browser, source, cell, gate, limiter, run_id, args.settle, stats
+                    )
                     all_quotes.extend(quotes)
                     if any(q.is_available for q in quotes):
                         available_cells.add(cell.cell_id)
                 if i % 10 == 0:
-                    log.info("progress %d/%d cells, %d quotes, %d cells with a price",
-                             i, len(cells), len(all_quotes), len(available_cells))
+                    log.info(
+                        "progress %d/%d cells, %d quotes, %d cells with a price",
+                        i,
+                        len(cells),
+                        len(all_quotes),
+                        len(available_cells),
+                    )
         finally:
             await browser.close()
 
@@ -247,50 +299,71 @@ async def run(args: argparse.Namespace) -> int:
     stats.quotes_written = sum(1 for q in all_quotes if q.is_available)
 
     log.info("-" * 78)
-    log.info("run finished: %d/%d cells priced (availability %.1f%%), %d priced quotes",
-             stats.cells_available, stats.cells_expected, stats.availability_rate * 100,
-             stats.quotes_written)
+    log.info(
+        "run finished: %d/%d cells priced (availability %.1f%%), %d priced quotes",
+        stats.cells_available,
+        stats.cells_expected,
+        stats.availability_rate * 100,
+        stats.quotes_written,
+    )
     for src, s in sorted(stats.per_source.items()):
-        log.info("  %-12s attempted=%-4d priced=%-4d blocked=%-3d timeout=%-3d parse_err=%-3d sold_out=%-3d",
-                 src, s["cells_attempted"], s["cells_available"], s["blocked_count"],
-                 s["timeout_count"], s["parse_error_count"], s["sold_out_count"])
+        log.info(
+            "  %-12s attempted=%-4d priced=%-4d blocked=%-3d timeout=%-3d parse_err=%-3d sold_out=%-3d",
+            src,
+            s["cells_attempted"],
+            s["cells_available"],
+            s["blocked_count"],
+            s["timeout_count"],
+            s["parse_error_count"],
+            s["sold_out_count"],
+        )
 
     if args.dry_run:
         log.info("dry run — nothing written")
-        print(json.dumps({"availability_rate": stats.availability_rate,
-                          "per_source": stats.per_source}, indent=2))
+        print(
+            json.dumps(
+                {"availability_rate": stats.availability_rate, "per_source": stats.per_source}, indent=2
+            )
+        )
         return 0
 
     csv_path = write_csv(all_quotes, stats.collection_date, RAW_DIR)
     stats.csv_path = str(csv_path)
-    stats.db_ok = write_postgres(all_quotes, stats, gate.decisions) if os.environ.get("DATABASE_URL") else False
+    stats.db_ok = (
+        write_postgres(all_quotes, stats, gate.decisions) if os.environ.get("DATABASE_URL") else False
+    )
     if not os.environ.get("DATABASE_URL"):
         log.warning("DATABASE_URL not set — CSV only. The series is still complete in git.")
 
     health = REPO / "data" / "collection_health.json"
     history = json.loads(health.read_text()) if health.exists() else []
     history = [h for h in history if h.get("collection_date") != stats.collection_date]
-    history.append({
-        "collection_date": stats.collection_date,
-        "run_id": run_id,
-        "started_at_utc": stats.started_at_utc.isoformat(),
-        "cells_expected": stats.cells_expected,
-        "cells_available": stats.cells_available,
-        "availability_rate": round(stats.availability_rate, 4),
-        "quotes_written": stats.quotes_written,
-        "db_ok": stats.db_ok,
-        "per_source": stats.per_source,
-        "robots_checks": len(gate.decisions),
-        "robots_disallowed": sum(1 for d in gate.decisions if not d.allowed),
-    })
+    history.append(
+        {
+            "collection_date": stats.collection_date,
+            "run_id": run_id,
+            "started_at_utc": stats.started_at_utc.isoformat(),
+            "cells_expected": stats.cells_expected,
+            "cells_available": stats.cells_available,
+            "availability_rate": round(stats.availability_rate, 4),
+            "quotes_written": stats.quotes_written,
+            "db_ok": stats.db_ok,
+            "per_source": stats.per_source,
+            "robots_checks": len(gate.decisions),
+            "robots_disallowed": sum(1 for d in gate.decisions if not d.allowed),
+        }
+    )
     health.write_text(json.dumps(sorted(history, key=lambda h: h["collection_date"]), indent=2))
 
     # A run that priced almost nothing is a failure even though no exception was raised.
     # Exiting non-zero makes GitHub Actions show it red, which is the only way anyone
     # finds out before the series has a week-long hole in it.
     if stats.availability_rate < args.min_availability:
-        log.error("availability %.1f%% is below the %.0f%% floor — failing the run loudly",
-                  stats.availability_rate * 100, args.min_availability * 100)
+        log.error(
+            "availability %.1f%% is below the %.0f%% floor — failing the run loudly",
+            stats.availability_rate * 100,
+            args.min_availability * 100,
+        )
         return 1
     return 0
 
@@ -301,9 +374,15 @@ def main() -> None:
     ap.add_argument("--sources", help="comma-separated source names")
     ap.add_argument("--limit", type=int, help="only the first N cells (smoke testing)")
     ap.add_argument("--settle", type=float, default=12.0, help="seconds to let XHRs land")
-    ap.add_argument("--min-interval", type=float, default=4.0, help="seconds between requests per domain")
-    ap.add_argument("--min-availability", type=float, default=0.0,
-                    help="fail the run below this availability rate (0-1)")
+    ap.add_argument(
+        "--min-interval", type=float, default=4.0, help="seconds between requests per domain"
+    )
+    ap.add_argument(
+        "--min-availability",
+        type=float,
+        default=0.0,
+        help="fail the run below this availability rate (0-1)",
+    )
     ap.add_argument("--jitter", action="store_true", help="randomise start within the window")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("-v", "--verbose", action="store_true")

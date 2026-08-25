@@ -117,6 +117,9 @@ class RobotsGate:
         self.decisions.append(decision)
         log.info(
             "robots url=%s allowed=%s reason=%s crawl_delay=%s",
-            url, decision.allowed, decision.reason, decision.crawl_delay,
+            url,
+            decision.allowed,
+            decision.reason,
+            decision.crawl_delay,
         )
         return decision

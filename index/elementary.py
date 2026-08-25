@@ -48,7 +48,7 @@ class StratumRelative:
     destination: str
     lead_time_days: int
     collection_date: str
-    relative: float | None      # None when nothing matched — imputation decides what happens next
+    relative: float | None  # None when nothing matched — imputation decides what happens next
     matched_items: int
     items_this_period: int
     items_prev_period: int
@@ -89,8 +89,8 @@ def collapse_to_items(quotes: pd.DataFrame) -> pd.DataFrame:
 
 
 EMPTY_RELATIVES = pd.DataFrame(
-    columns=STRATUM_KEY + ["collection_date", "relative", "matched_items",
-                           "items_this_period", "items_prev_period"]
+    columns=STRATUM_KEY
+    + ["collection_date", "relative", "matched_items", "items_this_period", "items_prev_period"]
 )
 
 
@@ -130,13 +130,11 @@ def jevons_relatives(
         items = pd.DataFrame(columns=ITEM_KEY + ["collection_date", "total_fare"])
 
     rows: list[StratumRelative] = []
-    for prev_d, this_d in zip(dates, dates[1:]):
+    for prev_d, this_d in zip(dates, dates[1:], strict=False):
         prev = items[items["collection_date"] == prev_d]
         cur = items[items["collection_date"] == this_d]
 
-        merged = cur.merge(
-            prev, on=ITEM_KEY, suffixes=("_t", "_p"), how="inner"
-        )
+        merged = cur.merge(prev, on=ITEM_KEY, suffixes=("_t", "_p"), how="inner")
         merged["log_rel"] = np.log(merged["total_fare_t"] / merged["total_fare_p"])
 
         if strata is not None:
@@ -150,8 +148,14 @@ def jevons_relatives(
             m = merged[
                 (merged["origin"] == o) & (merged["destination"] == d) & (merged["lead_time_days"] == lt)
             ]
-            n_cur = int(((cur["origin"] == o) & (cur["destination"] == d) & (cur["lead_time_days"] == lt)).sum())
-            n_prev = int(((prev["origin"] == o) & (prev["destination"] == d) & (prev["lead_time_days"] == lt)).sum())
+            n_cur = int(
+                ((cur["origin"] == o) & (cur["destination"] == d) & (cur["lead_time_days"] == lt)).sum()
+            )
+            n_prev = int(
+                (
+                    (prev["origin"] == o) & (prev["destination"] == d) & (prev["lead_time_days"] == lt)
+                ).sum()
+            )
 
             if len(m) == 0:
                 rel = None
@@ -160,31 +164,32 @@ def jevons_relatives(
                 # stability: a product of 300 relatives underflows long before the log sum does.
                 rel = float(np.exp(m["log_rel"].mean()))
 
-            rows.append(
-                StratumRelative(o, d, int(lt), this_d, rel, len(m), n_cur, n_prev)
-            )
+            rows.append(StratumRelative(o, d, int(lt), this_d, rel, len(m), n_cur, n_prev))
 
     if not rows:
         return EMPTY_RELATIVES.copy()
 
-    out = pd.DataFrame([
-        {
-            "origin": r.origin,
-            "destination": r.destination,
-            "lead_time_days": r.lead_time_days,
-            "collection_date": r.collection_date,
-            "relative": r.relative,
-            "matched_items": r.matched_items,
-            "items_this_period": r.items_this_period,
-            "items_prev_period": r.items_prev_period,
-        }
-        for r in rows
-    ])
+    out = pd.DataFrame(
+        [
+            {
+                "origin": r.origin,
+                "destination": r.destination,
+                "lead_time_days": r.lead_time_days,
+                "collection_date": r.collection_date,
+                "relative": r.relative,
+                "matched_items": r.matched_items,
+                "items_this_period": r.items_this_period,
+                "items_prev_period": r.items_prev_period,
+            }
+            for r in rows
+        ]
+    )
 
     unmatched = out["relative"].isna().sum()
     if unmatched:
         log.info(
             "elementary: %d of %d stratum-days had no matched item pair and go to imputation",
-            unmatched, len(out),
+            unmatched,
+            len(out),
         )
     return out

@@ -10,7 +10,7 @@ that would be exactly the kind of number-that-looks-finished this project refuse
 
 from __future__ import annotations
 
-from .base import Cell, Source, SourceSpec, register, harvest_offers_from_json, harvest_offers_from_dom
+from .base import Cell, Source, SourceSpec, harvest_offers_from_dom, harvest_offers_from_json, register
 
 
 @register
@@ -22,7 +22,7 @@ class Ixigo(Source):
         needs_browser=True,
         confidence="unverified",
         notes="Metasearch. Aggregates several OTAs, so its 'cheapest' is close to the "
-              "market minimum a consumer would actually find.",
+        "market minimum a consumer would actually find.",
     )
 
     def search_url(self, cell: Cell) -> str:

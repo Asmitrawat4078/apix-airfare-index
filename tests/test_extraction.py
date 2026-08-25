@@ -12,33 +12,71 @@ from __future__ import annotations
 from decimal import Decimal
 
 from collector.sources.base import (
-    harvest_offers_from_json,
-    harvest_offers_from_dom,
-    parse_inr,
     detect_carrier,
     detect_flight_no,
-    MIN_PLAUSIBLE_INR,
+    harvest_offers_from_dom,
+    harvest_offers_from_json,
+    parse_inr,
 )
 
 CAMEL_NESTED = {
-    "data": {"searchResult": {"tripInfos": {"ONWARD": [
-        {"sI": [{"fD": {"aI": {"code": "6E", "name": "IndiGo"}, "fN": "2043"},
-                 "stops": 0, "departureTime": "2026-09-09T06:10:00"}],
-         "totalPriceList": [{"fd": {"ADULT": {"fC": {"TF": 5432, "BF": 4100, "TAF": 1332}}}}]},
-        {"sI": [{"fD": {"aI": {"code": "AI", "name": "Air India"}, "fN": "805"},
-                 "stops": 0, "departureTime": "2026-09-09T09:00:00"}],
-         "totalPriceList": [{"fd": {"ADULT": {"fC": {"TF": 7890}}}}]},
-    ]}}}
+    "data": {
+        "searchResult": {
+            "tripInfos": {
+                "ONWARD": [
+                    {
+                        "sI": [
+                            {
+                                "fD": {"aI": {"code": "6E", "name": "IndiGo"}, "fN": "2043"},
+                                "stops": 0,
+                                "departureTime": "2026-09-09T06:10:00",
+                            }
+                        ],
+                        "totalPriceList": [
+                            {"fd": {"ADULT": {"fC": {"TF": 5432, "BF": 4100, "TAF": 1332}}}}
+                        ],
+                    },
+                    {
+                        "sI": [
+                            {
+                                "fD": {"aI": {"code": "AI", "name": "Air India"}, "fN": "805"},
+                                "stops": 0,
+                                "departureTime": "2026-09-09T09:00:00",
+                            }
+                        ],
+                        "totalPriceList": [{"fd": {"ADULT": {"fC": {"TF": 7890}}}}],
+                    },
+                ]
+            }
+        }
+    }
 }
 
-FLAT_KEYS = {"Results": [
-    {"AirlineCode": "SG", "FlightNumber": "SG-8169", "TotalFare": "6,245", "Stops": 0},
-    {"AirlineCode": "QP", "FlightNumber": "QP-1102", "TotalFare": 4875.0, "Stops": 0},
-]}
+FLAT_KEYS = {
+    "Results": [
+        {"AirlineCode": "SG", "FlightNumber": "SG-8169", "TotalFare": "6,245", "Stops": 0},
+        {"AirlineCode": "QP", "FlightNumber": "QP-1102", "TotalFare": 4875.0, "Stops": 0},
+    ]
+}
 
-BURIED = {"a": {"b": {"c": {"d": {"e": {"offers": [
-    {"marketingAirline": "Akasa Air QP-1301", "displayPrice": {"amount": 5199, "currency": "INR"}}
-]}}}}}}
+BURIED = {
+    "a": {
+        "b": {
+            "c": {
+                "d": {
+                    "e": {
+                        "offers": [
+                            {
+                                "marketingAirline": "Akasa Air QP-1301",
+                                "displayPrice": {"amount": 5199, "currency": "INR"},
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 def test_harvester_reads_camelcase_nested_payloads():

@@ -22,7 +22,13 @@ import yaml
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 
-from build_basket import DGCA_CSV, load_dgca, route_weights, to_directional, trailing_window  # noqa: E402
+from build_basket import (  # noqa: E402
+    DGCA_CSV,
+    load_dgca,
+    route_weights,
+    to_directional,
+    trailing_window,
+)
 
 TOLERANCE = 1e-9
 
@@ -52,8 +58,10 @@ def main() -> int:
     a = recomputed.set_index(["origin", "destination"])["weight"].round(8)
     b = committed.set_index(["origin", "destination"])["weight"].round(8)
     if set(a.index) != set(b.index):
-        problems.append(f"route set differs: only in recomputed {set(a.index) - set(b.index)}, "
-                        f"only in committed {set(b.index) - set(a.index)}")
+        problems.append(
+            f"route set differs: only in recomputed {set(a.index) - set(b.index)}, "
+            f"only in committed {set(b.index) - set(a.index)}"
+        )
     else:
         diff = (a - b).abs()
         drifted = diff[diff > TOLERANCE]
@@ -71,7 +79,9 @@ def main() -> int:
 
     expected_cells = len(yaml_weights) * len(basket["lead_times_days"])
     if basket["cells_per_day"] != expected_cells:
-        problems.append(f"cells_per_day says {basket['cells_per_day']}, routes x lead times is {expected_cells}")
+        problems.append(
+            f"cells_per_day says {basket['cells_per_day']}, routes x lead times is {expected_cells}"
+        )
 
     if problems:
         print("BASKET VERIFICATION FAILED\n")
@@ -79,10 +89,12 @@ def main() -> int:
             print(f"  * {p}\n")
         return 1
 
-    print(f"basket v{basket['basket_version']} verified: "
-          f"{len(yaml_weights)} directed routes x {len(basket['lead_times_days'])} lead times "
-          f"= {basket['cells_per_day']} cells/day, weights reproduce from "
-          f"{basket['weight_source']['window']} DGCA data, sha256 matches.")
+    print(
+        f"basket v{basket['basket_version']} verified: "
+        f"{len(yaml_weights)} directed routes x {len(basket['lead_times_days'])} lead times "
+        f"= {basket['cells_per_day']} cells/day, weights reproduce from "
+        f"{basket['weight_source']['window']} DGCA data, sha256 matches."
+    )
     return 0
 
 

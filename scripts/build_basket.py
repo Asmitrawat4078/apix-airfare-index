@@ -17,7 +17,7 @@ import argparse
 import hashlib
 import json
 import sys
-from datetime import date, datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -102,7 +102,9 @@ def select_pairs(directional: pd.DataFrame) -> tuple[list[tuple[str, str]], dict
     """Seeded pairs first, then the largest remaining pairs by two-way volume,
     with the thin regional route guaranteed a slot."""
     pair_vol = directional.copy()
-    pair_vol["pair"] = [pair_key(o, d) for o, d in zip(pair_vol.origin, pair_vol.destination)]
+    pair_vol["pair"] = [
+        pair_key(o, d) for o, d in zip(pair_vol.origin, pair_vol.destination, strict=False)
+    ]
     twoway = pair_vol.groupby("pair", as_index=False)["pax"].sum().sort_values("pax", ascending=False)
 
     chosen: list[tuple[str, str]] = []
@@ -131,9 +133,7 @@ def select_pairs(directional: pd.DataFrame) -> tuple[list[tuple[str, str]], dict
         raise SystemExit(f"selected {len(chosen)} pairs, expected {N_PAIRS}")
 
     total_network_pax = float(directional["pax"].sum())
-    basket_pax = float(
-        pair_vol[pair_vol["pair"].isin(chosen)]["pax"].sum()
-    )
+    basket_pax = float(pair_vol[pair_vol["pair"].isin(chosen)]["pax"].sum())
     stats = {
         "network_pax_in_window": total_network_pax,
         "basket_pax_in_window": basket_pax,
@@ -151,15 +151,15 @@ def route_weights(directional: pd.DataFrame, pairs: list[tuple[str, str]]) -> pd
     """
     wanted = {(o, d) for p in pairs for o, d in ((p[0], p[1]), (p[1], p[0]))}
     sel = directional[
-        [(o, d) in wanted for o, d in zip(directional.origin, directional.destination)]
+        [(o, d) in wanted for o, d in zip(directional.origin, directional.destination, strict=False)]
     ].copy()
 
-    missing = wanted - set(zip(sel.origin, sel.destination))
+    missing = wanted - set(zip(sel.origin, sel.destination, strict=False))
     if missing:
         raise SystemExit(f"no DGCA volume found for directed routes: {sorted(missing)}")
 
     sel["weight"] = sel["pax"] / sel["pax"].sum()
-    sel["pair"] = ["-".join(pair_key(o, d)) for o, d in zip(sel.origin, sel.destination)]
+    sel["pair"] = ["-".join(pair_key(o, d)) for o, d in zip(sel.origin, sel.destination, strict=False)]
     return sel.sort_values("weight", ascending=False).reset_index(drop=True)
 
 
@@ -195,7 +195,7 @@ def main() -> None:
 
     basket = {
         "basket_version": 1,
-        "frozen_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "frozen_at_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "problem_statement": "SIH26056",
         "offer_definition": {
             "cabin": "economy",

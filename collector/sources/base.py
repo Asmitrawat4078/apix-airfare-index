@@ -26,10 +26,11 @@ from __future__ import annotations
 import abc
 import logging
 import re
-from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any, Callable, Iterable
+from typing import Any
 
 from ..schema import Quote, UnavailableReason
 
@@ -202,7 +203,7 @@ class Source(abc.ABC):
         self, cell: Cell, url: str, reason: UnavailableReason, detail: str, run_id: str
     ) -> Quote:
         return Quote(
-            collection_ts_utc=datetime.now(timezone.utc),
+            collection_ts_utc=datetime.now(UTC),
             source=self.spec.name,
             url=url,
             origin=cell.origin,
@@ -266,17 +267,46 @@ def get_enabled(only: list[str] | None = None) -> list[Source]:
 # rounding error. Tier 1 keys unambiguously mean the total and win outright; tier 2 are
 # generic and used only when no tier-1 key is present; base-fare keys are excluded outright.
 PRICE_KEYS_TOTAL = (
-    "totalfare", "totalprice", "totalamount", "totalfareamount", "grandtotal",
-    "displayprice", "netamount", "publishedfare", "payableamount", "finalprice", "tf",
+    "totalfare",
+    "totalprice",
+    "totalamount",
+    "totalfareamount",
+    "grandtotal",
+    "displayprice",
+    "netamount",
+    "publishedfare",
+    "payableamount",
+    "finalprice",
+    "tf",
 )
 PRICE_KEYS_GENERIC = ("adultfare", "fare", "price", "amount")
-PRICE_KEYS_EXCLUDED = ("basefare", "baseprice", "bf", "taxes", "tax", "taf", "surcharge",
-                       "convenience", "discount", "markup", "commission")
+PRICE_KEYS_EXCLUDED = (
+    "basefare",
+    "baseprice",
+    "bf",
+    "taxes",
+    "tax",
+    "taf",
+    "surcharge",
+    "convenience",
+    "discount",
+    "markup",
+    "commission",
+)
 PRICE_KEYS = PRICE_KEYS_TOTAL + PRICE_KEYS_GENERIC
 
 AIRLINE_KEYS = (
-    "airline", "carrier", "airlinecode", "airlinename", "flightnumber", "flightno",
-    "flightcode", "marketingairline", "operatingairline", "fltno", "airlineid",
+    "airline",
+    "carrier",
+    "airlinecode",
+    "airlinename",
+    "flightnumber",
+    "flightno",
+    "flightcode",
+    "marketingairline",
+    "operatingairline",
+    "fltno",
+    "airlineid",
 )
 TIME_KEYS = ("departuretime", "deptime", "departure", "dt", "std", "arrivaltime", "arrtime")
 STOPS_KEYS = ("stops", "stopcount", "numberofstops", "sc", "nostops")
@@ -431,8 +461,12 @@ def harvest_offers_from_json(payload: Any, max_depth: int = 16) -> list[dict]:
         if qualifies(node, depth):
             # Descend only while a *child* is itself a complete offer. When no child is,
             # this node is the offer boundary.
-            child_offers = [v for v in node.values() if qualifies(v, depth + 1)
-                            or (isinstance(v, list) and any(qualifies(i, depth + 2) for i in v[:200]))]
+            child_offers = [
+                v
+                for v in node.values()
+                if qualifies(v, depth + 1)
+                or (isinstance(v, list) and any(qualifies(i, depth + 2) for i in v[:200]))
+            ]
             if not child_offers:
                 ident = id(node)
                 if ident not in seen:
@@ -440,15 +474,20 @@ def harvest_offers_from_json(payload: Any, max_depth: int = 16) -> list[dict]:
                     fare, airline_hint = _subtree_signals(node, depth, cache)
                     blob = f"{airline_hint or ''} {ancestry}"
                     flat = str(node)[:1500]
-                    offers.append({
-                        "total_fare": fare,
-                        "carrier": detect_carrier(blob) or detect_carrier(flat),
-                        "flight_no": detect_flight_no(blob) or detect_flight_no(flat),
-                        "stops": _first_int(node, STOPS_KEYS),
-                        "dep_raw": _first_string(node, TIME_KEYS),
-                        "raw": {k: v for k, v in list(node.items())[:25]
-                                if not isinstance(v, (dict, list))},
-                    })
+                    offers.append(
+                        {
+                            "total_fare": fare,
+                            "carrier": detect_carrier(blob) or detect_carrier(flat),
+                            "flight_no": detect_flight_no(blob) or detect_flight_no(flat),
+                            "stops": _first_int(node, STOPS_KEYS),
+                            "dep_raw": _first_string(node, TIME_KEYS),
+                            "raw": {
+                                k: v
+                                for k, v in list(node.items())[:25]
+                                if not isinstance(v, (dict, list))
+                            },
+                        }
+                    )
                 return
 
         for k, v in node.items():
@@ -476,7 +515,7 @@ def harvest_offers_from_dom(html: str) -> list[dict]:
     seen: set[tuple] = set()
 
     for node in soup.find_all(True):
-        if len(node.find_all(True)) > 40:      # too coarse: a whole results container
+        if len(node.find_all(True)) > 40:  # too coarse: a whole results container
             continue
         text = " ".join(node.get_text(" ", strip=True).split())
         if len(text) > 400 or len(text) < 10:
@@ -492,11 +531,13 @@ def harvest_offers_from_dom(html: str) -> list[dict]:
         if key in seen:
             continue
         seen.add(key)
-        offers.append({
-            "total_fare": min(prices),
-            "carrier": detect_carrier(text) or detect_carrier(flight_no),
-            "flight_no": flight_no,
-            "raw": {"text": text[:300], "extraction": "dom_fallback"},
-        })
+        offers.append(
+            {
+                "total_fare": min(prices),
+                "carrier": detect_carrier(text) or detect_carrier(flight_no),
+                "flight_no": flight_no,
+                "raw": {"text": text[:300], "extraction": "dom_fallback"},
+            }
+        )
 
     return offers

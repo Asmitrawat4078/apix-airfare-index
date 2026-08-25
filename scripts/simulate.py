@@ -26,7 +26,7 @@ import csv
 import os
 import random
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -78,7 +78,7 @@ def main() -> None:
 
     for day in days:
         for key in level:
-            level[key] *= (1 + rng.gauss(0, 0.018))
+            level[key] *= 1 + rng.gauss(0, 0.018)
         rows = []
         for origin, destination, _w in basket.directed_routes:
             for lt in basket.lead_times:
@@ -86,20 +86,38 @@ def main() -> None:
                 cell_sold_out = rng.random() < SELL_OUT_P[lt]
                 for src in sources:
                     if rng.random() < BLOCK_P:
-                        rows.append(_row(day, dep, src, origin, destination, lt, None, None,
-                                         False, "blocked"))
+                        rows.append(
+                            _row(day, dep, src, origin, destination, lt, None, None, False, "blocked")
+                        )
                         continue
                     if cell_sold_out:
-                        rows.append(_row(day, dep, src, origin, destination, lt, None, None,
-                                         False, "sold_out"))
+                        rows.append(
+                            _row(day, dep, src, origin, destination, lt, None, None, False, "sold_out")
+                        )
                         continue
                     dow_factor = 1.10 if dep.weekday() in (4, 6) else 1.0
                     for carrier in rng.sample(CARRIERS, rng.randint(2, 4)):
-                        fare = (level[(origin, destination)] * LEAD_CURVE[lt]
-                                * CARRIER_LEVEL[carrier] * dow_factor
-                                * (1 + rng.gauss(0, 0.05)))
-                        rows.append(_row(day, dep, src, origin, destination, lt, carrier,
-                                         round(max(fare, 1300), 2), True, None))
+                        fare = (
+                            level[(origin, destination)]
+                            * LEAD_CURVE[lt]
+                            * CARRIER_LEVEL[carrier]
+                            * dow_factor
+                            * (1 + rng.gauss(0, 0.05))
+                        )
+                        rows.append(
+                            _row(
+                                day,
+                                dep,
+                                src,
+                                origin,
+                                destination,
+                                lt,
+                                carrier,
+                                round(max(fare, 1300), 2),
+                                True,
+                                None,
+                            )
+                        )
         path = SIM_DIR / f"{day.isoformat()}.csv"
         with path.open("w", newline="", encoding="utf-8") as fh:
             w = csv.DictWriter(fh, fieldnames=CSV_COLUMNS + ["is_simulated"])
@@ -113,16 +131,31 @@ def main() -> None:
 
 def _row(day, dep, source, o, d, lt, carrier, fare, available, reason):
     return {
-        "run_id": "00000000-0000-0000-0000-00000000sim", "basket_version": 1,
-        "collection_ts_utc": datetime.combine(day, datetime.min.time(), timezone.utc).isoformat(),
-        "collection_date": day.isoformat(), "source": source,
-        "url": "simulated://not-a-real-observation", "origin": o, "destination": d,
-        "lead_time_days": lt, "dep_date": dep.isoformat(), "carrier": carrier,
+        "run_id": "00000000-0000-0000-0000-00000000sim",
+        "basket_version": 1,
+        "collection_ts_utc": datetime.combine(day, datetime.min.time(), UTC).isoformat(),
+        "collection_date": day.isoformat(),
+        "source": source,
+        "url": "simulated://not-a-real-observation",
+        "origin": o,
+        "destination": d,
+        "lead_time_days": lt,
+        "dep_date": dep.isoformat(),
+        "carrier": carrier,
         "flight_no": f"{carrier}{1000 + lt}" if carrier else None,
-        "dep_ts": f"{dep.isoformat()}T08:00:00+05:30", "arr_ts": None, "stops": 0,
-        "fare_class": "economy", "base_fare": None, "taxes": None, "fees": None,
-        "total_fare": fare, "currency": "INR", "is_available": available,
-        "is_cheapest_in_cell": False, "unavailable_reason": reason, "is_simulated": True,
+        "dep_ts": f"{dep.isoformat()}T08:00:00+05:30",
+        "arr_ts": None,
+        "stops": 0,
+        "fare_class": "economy",
+        "base_fare": None,
+        "taxes": None,
+        "fees": None,
+        "total_fare": fare,
+        "currency": "INR",
+        "is_available": available,
+        "is_cheapest_in_cell": False,
+        "unavailable_reason": reason,
+        "is_simulated": True,
     }
 
 

@@ -53,18 +53,23 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from index.aggregate import BASE_VALUE, aggregate, build_weights, chain_strata
 from index.elementary import collapse_to_items, jevons_relatives
-from index.imputation import impute_relatives, TIER_OBSERVED, TIER_LEADTIME
-from index.aggregate import chain_strata, aggregate, build_weights, BASE_VALUE
-from index.scenarios import SCENARIOS, by_name, LEAD_TIMES
+from index.imputation import TIER_LEADTIME, impute_relatives
+from index.scenarios import LEAD_TIMES, SCENARIOS, by_name
 
 PLACES = 10
 
 
 def _q(day, o, d, carrier, fare, available=True, source="probe"):
     return {
-        "collection_date": day, "source": source, "origin": o, "destination": d,
-        "lead_time_days": 7, "carrier": carrier, "total_fare": fare,
+        "collection_date": day,
+        "source": source,
+        "origin": o,
+        "destination": d,
+        "lead_time_days": 7,
+        "carrier": carrier,
+        "total_fare": fare,
         "is_available": available,
     }
 
@@ -72,11 +77,16 @@ def _q(day, o, d, carrier, fare, available=True, source="probe"):
 @pytest.fixture
 def worked_example_quotes() -> pd.DataFrame:
     rows = [
-        _q("2026-09-01", "DEL", "BOM", "6E", 4000), _q("2026-09-01", "DEL", "BOM", "AI", 8000),
-        _q("2026-09-01", "DEL", "BLR", "6E", 3000), _q("2026-09-01", "DEL", "BLR", "AI", 6000),
-        _q("2026-09-02", "DEL", "BOM", "6E", 5000), _q("2026-09-02", "DEL", "BOM", "AI", 8000),
-        _q("2026-09-02", "DEL", "BLR", "6E", 3300), _q("2026-09-02", "DEL", "BLR", "AI", 5400),
-        _q("2026-09-03", "DEL", "BOM", "6E", 5500), _q("2026-09-03", "DEL", "BOM", "AI", 8000),
+        _q("2026-09-01", "DEL", "BOM", "6E", 4000),
+        _q("2026-09-01", "DEL", "BOM", "AI", 8000),
+        _q("2026-09-01", "DEL", "BLR", "6E", 3000),
+        _q("2026-09-01", "DEL", "BLR", "AI", 6000),
+        _q("2026-09-02", "DEL", "BOM", "6E", 5000),
+        _q("2026-09-02", "DEL", "BOM", "AI", 8000),
+        _q("2026-09-02", "DEL", "BLR", "6E", 3300),
+        _q("2026-09-02", "DEL", "BLR", "AI", 5400),
+        _q("2026-09-03", "DEL", "BOM", "6E", 5500),
+        _q("2026-09-03", "DEL", "BOM", "AI", 8000),
     ]
     # Day 3: DEL->BLR is genuinely sold out. It must appear as an unavailable observation,
     # not as an absent row — the difference is the whole point of the availability rate.
@@ -124,8 +134,14 @@ def test_second_stratum_relative_matches_hand_computation(worked_example_quotes)
 def test_jevons_passes_time_reversal():
     """J(t0->t1) * J(t1->t0) == 1. Carli famously fails this; if we ever regress to Carli
     by accident, this test is what catches it."""
-    up = pd.DataFrame([_q("d1", "DEL", "BOM", "6E", 4000), _q("d1", "DEL", "BOM", "AI", 8000),
-                       _q("d2", "DEL", "BOM", "6E", 5000), _q("d2", "DEL", "BOM", "AI", 8000)])
+    up = pd.DataFrame(
+        [
+            _q("d1", "DEL", "BOM", "6E", 4000),
+            _q("d1", "DEL", "BOM", "AI", 8000),
+            _q("d2", "DEL", "BOM", "6E", 5000),
+            _q("d2", "DEL", "BOM", "AI", 8000),
+        ]
+    )
     down = up.copy()
     down["collection_date"] = down["collection_date"].map({"d1": "d2", "d2": "d1"})
 
@@ -136,12 +152,16 @@ def test_jevons_passes_time_reversal():
 
 def test_cheapest_offer_wins_within_an_item(worked_example_quotes):
     """Two sources quoting the same carrier/route/lead-time collapse to the cheaper one."""
-    extra = pd.concat([
-        worked_example_quotes,
-        pd.DataFrame([_q("2026-09-01", "DEL", "BOM", "6E", 3500, source="probe")]),
-    ])
+    extra = pd.concat(
+        [
+            worked_example_quotes,
+            pd.DataFrame([_q("2026-09-01", "DEL", "BOM", "6E", 3500, source="probe")]),
+        ]
+    )
     items = collapse_to_items(extra)
-    row = items[(items.collection_date == "2026-09-01") & (items.carrier == "6E") & (items.destination == "BOM")]
+    row = items[
+        (items.collection_date == "2026-09-01") & (items.carrier == "6E") & (items.destination == "BOM")
+    ]
     assert len(row) == 1
     assert float(row.total_fare.iloc[0]) == 3500.0
 
@@ -190,10 +210,12 @@ def test_observed_weight_share_falls_when_a_stratum_is_imputed(worked_example_qu
 
 def test_index_refuses_to_publish_when_nothing_is_observed():
     """A day with no observations anywhere produces no index value, not a flat line."""
-    quotes = pd.DataFrame([
-        _q("d1", "DEL", "BOM", "6E", 4000),
-        {**_q("d2", "DEL", "BOM", "6E", None, available=False), "total_fare": np.nan},
-    ])
+    quotes = pd.DataFrame(
+        [
+            _q("d1", "DEL", "BOM", "6E", 4000),
+            {**_q("d2", "DEL", "BOM", "6E", None, available=False), "total_fare": np.nan},
+        ]
+    )
     strata = quotes[["origin", "destination", "lead_time_days"]].drop_duplicates()
     rel = jevons_relatives(
         collapse_to_items(quotes),
@@ -225,10 +247,12 @@ def test_every_scenario_is_a_valid_probability_distribution():
 
 
 def test_basket_weights_multiply_out_to_one():
-    routes = pd.DataFrame([
-        {"origin": "DEL", "destination": "BOM", "weight": 0.7},
-        {"origin": "BOM", "destination": "DEL", "weight": 0.3},
-    ])
+    routes = pd.DataFrame(
+        [
+            {"origin": "DEL", "destination": "BOM", "weight": 0.7},
+            {"origin": "BOM", "destination": "DEL", "weight": 0.3},
+        ]
+    )
     for s in SCENARIOS:
         w = build_weights(routes, s)
         assert len(w) == 2 * len(LEAD_TIMES)

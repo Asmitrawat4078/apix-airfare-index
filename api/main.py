@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -60,13 +60,14 @@ app = FastAPI(
 # Models
 # --------------------------------------------------------------------------------------
 
+
 class IndexPoint(BaseModel):
     collection_date: date
     scenario: str = Field(description="Lead-time weighting scenario this value assumes")
     index_value: float = Field(description="Index level, 100 = first collection day")
     availability_rate: float | None = Field(
         description="Share of the 120 basket cells that returned a real quote that day. "
-                    "Always read this alongside the index value."
+        "Always read this alongside the index value."
     )
     observed_weight_share: float | None = Field(
         description="Share of basket weight that was directly observed rather than imputed"
@@ -100,6 +101,7 @@ class BandPoint(BaseModel):
 # --------------------------------------------------------------------------------------
 # Loading
 # --------------------------------------------------------------------------------------
+
 
 def _read(name: str) -> pd.DataFrame:
     p = INDEX_DIR / name
@@ -135,6 +137,7 @@ STANDARD_CAVEATS = [
 # Endpoints
 # --------------------------------------------------------------------------------------
 
+
 @app.get("/", include_in_schema=False)
 def root() -> dict:
     m = _meta()
@@ -166,8 +169,11 @@ def health() -> dict:
     last = history[-1]
     age_days = (date.today() - date.fromisoformat(last["collection_date"])).days
     return {
-        "status": "healthy" if age_days <= 1 and last["availability_rate"] >= 0.8
-                  else "degraded" if age_days <= 2 else "stale",
+        "status": (
+            "healthy"
+            if age_days <= 1 and last["availability_rate"] >= 0.8
+            else "degraded" if age_days <= 2 else "stale"
+        ),
         "last_collection_date": last["collection_date"],
         "days_since_last_collection": age_days,
         "last_availability_rate": last["availability_rate"],
@@ -303,7 +309,7 @@ def revisions(limit: int = Query(200, le=2000)) -> dict:
         return {
             "available": False,
             "reason": "DATABASE_URL not configured. Revision history lives in Postgres; "
-                      "the CSV outputs in the repo carry only the current vintage.",
+            "the CSV outputs in the repo carry only the current vintage.",
         }
     import psycopg
 
@@ -315,7 +321,7 @@ def revisions(limit: int = Query(200, le=2000)) -> dict:
             (limit,),
         )
         cols = [c.name for c in cur.description]
-        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        rows = [dict(zip(cols, r, strict=False)) for r in cur.fetchall()]
     return {"available": True, "n_revisions": len(rows), "revisions": rows}
 
 
@@ -342,22 +348,22 @@ def methodology() -> dict:
             "stratum": "(origin, destination, lead_time_days)",
             "matched_item": "(source, origin, destination, lead_time_days, carrier)",
             "why": "Eurostat's recommended elementary aggregate for web-scraped data: "
-                   "base-period invariant, passes time reversal, damps the downward bias "
-                   "from non-random missingness.",
+            "base-period invariant, passes time reversal, damps the downward bias "
+            "from non-random missingness.",
         },
         "weights": {
             "routes": "DGCA monthly domestic city-pair passengers, directional, "
-                      "trailing 12 months, frozen with the basket",
+            "trailing 12 months, frozen with the basket",
             "lead_times": "unknown for India — published as three scenarios, never invented",
         },
         "missing_data": {
             "rule": "imputed by the movement of the nearest observed donor stratum "
-                    "(route, then lead time, then all items)",
+            "(route, then lead time, then all items)",
             "never": "carry-forward, which would assert zero price change on no evidence",
             "published_alongside": "availability_rate and observed_weight_share",
         },
         "chaining": "daily chained, rebased to 100 on the first collection day, "
-                    "with GEKS and direct fixed-base indices published as drift diagnostics",
+        "with GEKS and direct fixed-base indices published as drift diagnostics",
         "revisions": "every computation is a new vintage; nothing is overwritten",
         "quality_adjustment": m.get("hedonic", {}).get("formula"),
         "known_limitations": STANDARD_CAVEATS,
@@ -398,8 +404,8 @@ def ingest_mis(records: list[MISRecord]) -> JSONResponse:
         status_code=501,
         content={
             "detail": "Not implemented. This endpoint documents the extension point for "
-                      "airline MIS data, which would allow seat-weighted rather than "
-                      "quote-weighted aggregation.",
+            "airline MIS data, which would allow seat-weighted rather than "
+            "quote-weighted aggregation.",
             "records_received": len(records),
             "would_enable": [
                 "load-factor weighting within lead-time strata",

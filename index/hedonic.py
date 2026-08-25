@@ -41,7 +41,7 @@ BASE_VALUE = 100.0
 
 @dataclass(frozen=True, slots=True)
 class HedonicResult:
-    series: pd.DataFrame          # collection_date, hedonic_index, se, ci_low, ci_high
+    series: pd.DataFrame  # collection_date, hedonic_index, se, ci_low, ci_high
     r_squared: float
     n_observations: int
     n_parameters: int
@@ -124,8 +124,9 @@ def _drop_degenerate(df: pd.DataFrame, terms: list[str]) -> list[str]:
     return kept
 
 
-def attach_regression_weights(df: pd.DataFrame, route_weights: pd.DataFrame | None,
-                              lead_time_weights: dict[int, float] | None) -> pd.Series:
+def attach_regression_weights(
+    df: pd.DataFrame, route_weights: pd.DataFrame | None, lead_time_weights: dict[int, float] | None
+) -> pd.Series:
     """Weight each observation so the hedonic answers the same question as the headline.
 
     This matters more than it looks. An unweighted OLS gives every *quote* equal say, so a
@@ -149,7 +150,7 @@ def attach_regression_weights(df: pd.DataFrame, route_weights: pd.DataFrame | No
     cell_weight = pd.Series(
         [
             rw.get((o, d), 0.0) * ltw.get(int(lt), 1.0)
-            for o, d, lt in zip(df["origin"], df["destination"], df["lead_time_days"])
+            for o, d, lt in zip(df["origin"], df["destination"], df["lead_time_days"], strict=False)
         ],
         index=df.index,
     )
@@ -180,23 +181,30 @@ def fit(
     if len(df) < min_observations:
         log.warning(
             "hedonic: %d usable observations is below the %d minimum — not fitting",
-            len(df), min_observations,
+            len(df),
+            min_observations,
         )
         return None
     if df["collection_date"].nunique() < 2:
         log.warning("hedonic: needs at least two collection days")
         return None
 
-    candidate_terms = ["C(route)", "C(carrier)", "C(lead_time_days)", "C(dep_dow)",
-                       "C(dep_hour_band)", "is_holiday"]
+    candidate_terms = [
+        "C(route)",
+        "C(carrier)",
+        "C(lead_time_days)",
+        "C(dep_dow)",
+        "C(dep_hour_band)",
+        "is_holiday",
+    ]
     terms = _drop_degenerate(df, candidate_terms)
     formula = "log_fare ~ " + " + ".join(terms + ["C(collection_date)"])
 
     df = df.assign(_w=attach_regression_weights(df, route_weights, lead_time_weights))
     weighted = route_weights is not None
-    model = (
-        smf.wls(formula, data=df, weights=df["_w"]) if weighted else smf.ols(formula, data=df)
-    ).fit(cov_type="HC1")  # heteroskedasticity-robust standard errors either way
+    model = (smf.wls(formula, data=df, weights=df["_w"]) if weighted else smf.ols(formula, data=df)).fit(
+        cov_type="HC1"
+    )  # heteroskedasticity-robust standard errors either way
 
     base_day = sorted(df["collection_date"].unique())[0]
     rows = [{"collection_date": base_day, "log_coef": 0.0, "se": 0.0}]
@@ -204,8 +212,9 @@ def fit(
         if not name.startswith("C(collection_date)[T."):
             continue
         day = name.split("[T.")[1].rstrip("]")
-        rows.append({"collection_date": day, "log_coef": float(model.params[name]),
-                     "se": float(model.bse[name])})
+        rows.append(
+            {"collection_date": day, "log_coef": float(model.params[name]), "se": float(model.bse[name])}
+        )
 
     series = pd.DataFrame(rows).sort_values("collection_date").reset_index(drop=True)
     series["hedonic_index"] = BASE_VALUE * np.exp(series["log_coef"])
@@ -223,8 +232,11 @@ def fit(
             "condition_number": float(model.condition_number),
             "f_pvalue": float(model.f_pvalue) if model.f_pvalue is not None else None,
             "weighted": weighted,
-            "weighting": ("basket weights (route x lead-time), normalised per cell-day"
-                          if weighted else "unweighted — not comparable to the headline"),
+            "weighting": (
+                "basket weights (route x lead-time), normalised per cell-day"
+                if weighted
+                else "unweighted — not comparable to the headline"
+            ),
             "terms_used": terms,
             "terms_dropped": [t for t in candidate_terms if t not in terms],
             "base_day": base_day,

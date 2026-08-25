@@ -53,8 +53,15 @@ def chain_strata(imputed: pd.DataFrame, base_date: str) -> pd.DataFrame:
         o, d, lt = s["origin"], s["destination"], int(s["lead_time_days"])
         level = BASE_VALUE
         rows.append(
-            {"origin": o, "destination": d, "lead_time_days": lt, "collection_date": base_date,
-             "stratum_index": level, "imputation_tier": TIER_OBSERVED, "matched_items": np.nan}
+            {
+                "origin": o,
+                "destination": d,
+                "lead_time_days": lt,
+                "collection_date": base_date,
+                "stratum_index": level,
+                "imputation_tier": TIER_OBSERVED,
+                "matched_items": np.nan,
+            }
         )
         sub = imputed[
             (imputed["origin"] == o) & (imputed["destination"] == d) & (imputed["lead_time_days"] == lt)
@@ -69,16 +76,28 @@ def chain_strata(imputed: pd.DataFrame, base_date: str) -> pd.DataFrame:
                 # we hold the level but mark it, and the caller drops it from the weighted
                 # mean rather than pretending it contributed.
                 rows.append(
-                    {"origin": o, "destination": d, "lead_time_days": lt, "collection_date": day,
-                     "stratum_index": np.nan, "imputation_tier": r["imputation_tier"],
-                     "matched_items": r["matched_items"]}
+                    {
+                        "origin": o,
+                        "destination": d,
+                        "lead_time_days": lt,
+                        "collection_date": day,
+                        "stratum_index": np.nan,
+                        "imputation_tier": r["imputation_tier"],
+                        "matched_items": r["matched_items"],
+                    }
                 )
                 continue
             level = level * float(rel)
             rows.append(
-                {"origin": o, "destination": d, "lead_time_days": lt, "collection_date": day,
-                 "stratum_index": level, "imputation_tier": r["imputation_tier"],
-                 "matched_items": r["matched_items"]}
+                {
+                    "origin": o,
+                    "destination": d,
+                    "lead_time_days": lt,
+                    "collection_date": day,
+                    "stratum_index": level,
+                    "imputation_tier": r["imputation_tier"],
+                    "matched_items": r["matched_items"],
+                }
             )
     return pd.DataFrame(rows)
 
@@ -111,8 +130,12 @@ def build_weights(route_weights: pd.DataFrame, scenario: LeadTimeScenario) -> pd
     for r in route_weights.itertuples():
         for lt, wlt in scenario.weights.items():
             rows.append(
-                {"origin": r.origin, "destination": r.destination, "lead_time_days": int(lt),
-                 "weight": float(r.weight) * float(wlt)}
+                {
+                    "origin": r.origin,
+                    "destination": r.destination,
+                    "lead_time_days": int(lt),
+                    "weight": float(r.weight) * float(wlt),
+                }
             )
     w = pd.DataFrame(rows)
     total = w["weight"].sum()

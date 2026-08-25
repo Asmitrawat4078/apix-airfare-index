@@ -52,7 +52,9 @@ class ImputationSummary:
 
     @property
     def total(self) -> int:
-        return self.observed + self.imputed_route + self.imputed_leadtime + self.imputed_all + self.no_donor
+        return (
+            self.observed + self.imputed_route + self.imputed_leadtime + self.imputed_all + self.no_donor
+        )
 
     @property
     def observed_share(self) -> float:
@@ -80,8 +82,8 @@ def impute_relatives(relatives: pd.DataFrame) -> pd.DataFrame:
         observed = chunk[chunk["relative"].notna()]
         if observed.empty:
             log.warning(
-                "imputation date=%s no stratum was observed at all — publishing a gap, "
-                "not a number", day,
+                "imputation date=%s no stratum was observed at all — publishing a gap, " "not a number",
+                day,
             )
             continue
 

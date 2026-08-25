@@ -20,7 +20,7 @@ import logging
 import os
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .schema import Quote, UnavailableReason
@@ -28,10 +28,30 @@ from .schema import Quote, UnavailableReason
 log = logging.getLogger("apix.storage")
 
 CSV_COLUMNS = [
-    "run_id", "basket_version", "collection_ts_utc", "collection_date", "source", "url",
-    "origin", "destination", "lead_time_days", "dep_date", "carrier", "flight_no",
-    "dep_ts", "arr_ts", "stops", "fare_class", "base_fare", "taxes", "fees", "total_fare",
-    "currency", "is_available", "is_cheapest_in_cell", "unavailable_reason",
+    "run_id",
+    "basket_version",
+    "collection_ts_utc",
+    "collection_date",
+    "source",
+    "url",
+    "origin",
+    "destination",
+    "lead_time_days",
+    "dep_date",
+    "carrier",
+    "flight_no",
+    "dep_ts",
+    "arr_ts",
+    "stops",
+    "fare_class",
+    "base_fare",
+    "taxes",
+    "fees",
+    "total_fare",
+    "currency",
+    "is_available",
+    "is_cheapest_in_cell",
+    "unavailable_reason",
 ]
 
 
@@ -55,8 +75,15 @@ class RunStats:
     def note(self, source: str, key: str, n: int = 1) -> None:
         self.per_source.setdefault(
             source,
-            {"cells_attempted": 0, "cells_available": 0, "quotes_written": 0,
-             "blocked_count": 0, "timeout_count": 0, "parse_error_count": 0, "sold_out_count": 0},
+            {
+                "cells_attempted": 0,
+                "cells_available": 0,
+                "quotes_written": 0,
+                "blocked_count": 0,
+                "timeout_count": 0,
+                "parse_error_count": 0,
+                "sold_out_count": 0,
+            },
         )
         self.per_source[source][key] = self.per_source[source].get(key, 0) + n
 
@@ -124,26 +151,55 @@ def write_postgres(quotes: list[Quote], stats: RunStats, robots_decisions: list)
                   status = excluded.status
                 """,
                 (
-                    stats.run_id, 1, stats.started_at_utc, stats.collection_date,
-                    os.environ.get("APIX_SCHEDULED_IST"), os.environ.get("GITHUB_SHA"),
+                    stats.run_id,
+                    1,
+                    stats.started_at_utc,
+                    stats.collection_date,
+                    os.environ.get("APIX_SCHEDULED_IST"),
+                    os.environ.get("GITHUB_SHA"),
                     os.environ.get("GITHUB_RUN_ID", "local"),
-                    stats.cells_expected, stats.cells_attempted, stats.cells_available,
-                    stats.quotes_written, round(stats.availability_rate, 4), "finished",
-                    datetime.now(timezone.utc),
+                    stats.cells_expected,
+                    stats.cells_attempted,
+                    stats.cells_available,
+                    stats.quotes_written,
+                    round(stats.availability_rate, 4),
+                    "finished",
+                    datetime.now(UTC),
                 ),
             )
 
             rows = []
             for q in quotes:
                 r = q.to_row()
-                rows.append((
-                    stats.run_id, q.basket_version, q.collection_ts_utc, stats.collection_date,
-                    q.source, q.url, q.origin, q.destination, q.lead_time_days, q.dep_date,
-                    q.carrier, q.flight_no, q.dep_ts, q.arr_ts, q.stops, q.fare_class,
-                    r["base_fare"], r["taxes"], r["fees"], r["total_fare"], q.currency,
-                    q.is_available, q.is_cheapest_in_cell, q.unavailable_reason,
-                    json.dumps(q.raw_payload, default=str),
-                ))
+                rows.append(
+                    (
+                        stats.run_id,
+                        q.basket_version,
+                        q.collection_ts_utc,
+                        stats.collection_date,
+                        q.source,
+                        q.url,
+                        q.origin,
+                        q.destination,
+                        q.lead_time_days,
+                        q.dep_date,
+                        q.carrier,
+                        q.flight_no,
+                        q.dep_ts,
+                        q.arr_ts,
+                        q.stops,
+                        q.fare_class,
+                        r["base_fare"],
+                        r["taxes"],
+                        r["fees"],
+                        r["total_fare"],
+                        q.currency,
+                        q.is_available,
+                        q.is_cheapest_in_cell,
+                        q.unavailable_reason,
+                        json.dumps(q.raw_payload, default=str),
+                    )
+                )
             if rows:
                 cur.executemany(
                     """
@@ -166,9 +222,17 @@ def write_postgres(quotes: list[Quote], stats: RunStats, robots_decisions: list)
                     values (%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     on conflict (run_id, source) do nothing
                     """,
-                    (stats.run_id, source, s["cells_attempted"], s["cells_available"],
-                     s["quotes_written"], s["blocked_count"], s["timeout_count"],
-                     s["parse_error_count"], s["sold_out_count"]),
+                    (
+                        stats.run_id,
+                        source,
+                        s["cells_attempted"],
+                        s["cells_available"],
+                        s["quotes_written"],
+                        s["blocked_count"],
+                        s["timeout_count"],
+                        s["parse_error_count"],
+                        s["sold_out_count"],
+                    ),
                 )
 
             for d in robots_decisions:
@@ -178,15 +242,24 @@ def write_postgres(quotes: list[Quote], stats: RunStats, robots_decisions: list)
                       (run_id, checked_at_utc, domain, url, user_agent, allowed, reason, crawl_delay_s)
                     values (%s, to_timestamp(%s), %s,%s,%s,%s,%s,%s)
                     """,
-                    (stats.run_id, d.checked_at, d.domain, d.url, d.user_agent,
-                     d.allowed, d.reason, d.crawl_delay),
+                    (
+                        stats.run_id,
+                        d.checked_at,
+                        d.domain,
+                        d.url,
+                        d.user_agent,
+                        d.allowed,
+                        d.reason,
+                        d.crawl_delay,
+                    ),
                 )
         log.info("postgres wrote %d quotes for run %s", len(quotes), stats.run_id)
         return True
     except Exception as exc:  # noqa: BLE001
         log.error(
             "postgres write FAILED (%s) — the CSV in data/raw is now the only copy of "
-            "today's observations. The run is degraded, not lost.", exc,
+            "today's observations. The run is degraded, not lost.",
+            exc,
         )
         return False
 

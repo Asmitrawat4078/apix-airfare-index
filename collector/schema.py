@@ -9,7 +9,7 @@ available cell with no price is a bug, not an observation.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -27,11 +27,11 @@ class UnavailableReason(StrEnum):
     thing a price index can do to itself.
     """
 
-    SOLD_OUT = "sold_out"          # flights exist, no economy seat purchasable
-    NO_SERVICE = "no_service"      # no flight operates this route on this date
-    BLOCKED = "blocked"            # bot wall, CAPTCHA, 403 — our failure, not the market's
+    SOLD_OUT = "sold_out"  # flights exist, no economy seat purchasable
+    NO_SERVICE = "no_service"  # no flight operates this route on this date
+    BLOCKED = "blocked"  # bot wall, CAPTCHA, 403 — our failure, not the market's
     RATE_LIMITED = "rate_limited"  # we backed off deliberately
-    PARSE_ERROR = "parse_error"    # response received but not understood
+    PARSE_ERROR = "parse_error"  # response received but not understood
     TIMEOUT = "timeout"
     ROBOTS_DISALLOWED = "robots_disallowed"  # we were told not to look, and didn't
 
@@ -49,7 +49,7 @@ class Quote:
     origin: str
     destination: str
     lead_time_days: int
-    dep_date: str                      # YYYY-MM-DD, local to origin
+    dep_date: str  # YYYY-MM-DD, local to origin
     is_available: bool
     basket_version: int = 1
     run_id: str | None = None
