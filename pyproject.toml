@@ -1,0 +1,59 @@
+[project]
+name = "apix"
+version = "1.0.0"
+description = "A daily price index for Indian domestic airfares, built to official-statistics standards. SIH 2026 / SIH26056."
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+    "statsmodels>=0.14",
+    "holidays>=0.50",
+    "httpx>=0.27",
+    "psycopg[binary]>=3.1",
+]
+
+[project.optional-dependencies]
+collect = [
+    "playwright>=1.44",
+    "beautifulsoup4>=4.12",
+    "httpx>=0.27",
+    "pyyaml>=6.0",
+    "pandas>=2.2",
+    "psycopg[binary]>=3.1",
+    "statsmodels>=0.14",
+    "holidays>=0.50",
+]
+api = ["fastapi>=0.111", "uvicorn[standard]>=0.30"]
+dashboard = ["streamlit>=1.35", "plotly>=5.22"]
+dev = [
+    "pytest>=8.2",
+    "ruff>=0.4",
+    "black>=24.4",
+    "pandera>=0.19",
+    "beautifulsoup4>=4.12",
+    "playwright>=1.44",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["collector", "collector.sources", "index", "api"]
+
+[tool.ruff]
+line-length = 105
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4"]
+ignore = ["E501", "B008"]
+
+[tool.black]
+line-length = 105
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]

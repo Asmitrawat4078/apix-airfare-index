@@ -1,0 +1,28 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - name: Lint
+        run: |
+          ruff check .
+          black --check .
+      - name: Index maths and extraction tests
+        run: pytest -q --tb=short
+      - name: The basket must be reproducible from its source data
+        # If this fails, someone edited basket.yaml by hand. The basket is frozen and its
+        # provenance has to survive; a hand-edited weight is an unaudited weight.
+        run: python scripts/verify_basket.py

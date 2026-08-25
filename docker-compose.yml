@@ -1,0 +1,32 @@
+# One file so a judge can run the whole thing locally without an account anywhere.
+#
+#   docker compose up api dashboard
+#
+# Both services read the CSVs committed in data/, so the index is reproducible from a
+# clone with no database and no credentials. That is the point: an index that cannot be
+# recomputed from its raw observations cannot be audited.
+
+services:
+  api:
+    build: .
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    ports: ["8000:8000"]
+    volumes: ["./data:/app/data:ro"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-}
+
+  dashboard:
+    build: .
+    command: streamlit run dashboard/app.py --server.port 8501 --server.address 0.0.0.0
+    ports: ["8501:8501"]
+    volumes: ["./data:/app/data:ro"]
+
+  # Not scheduled here on purpose: collection runs on GitHub Actions, whose public run
+  # history doubles as the audit log of when we collected. Use this only for a manual run.
+  collect:
+    build: .
+    profiles: ["manual"]
+    command: python -m collector.run --limit 5 --dry-run -v
+    volumes: ["./data:/app/data"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-}

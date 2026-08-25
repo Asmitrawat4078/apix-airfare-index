@@ -1,0 +1,58 @@
+name: Probe fare sources
+
+# Answers a question you cannot answer from a laptop in India: what do these sites do when
+# the request comes from a foreign datacentre? GitHub's runners are in Azure US, which is
+# where collection actually happens, so this is the only environment whose answer counts.
+#
+# Run this whenever a source starts failing, before enabling a new source, and after any
+# OTA re-platforms. The report is committed so the next person does not repeat the work.
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Comma-separated source names (blank = all candidates)"
+        required: false
+      settle:
+        description: "Seconds to wait for XHRs to land"
+        default: "15"
+      lead_days:
+        description: "Departure lead time to probe with"
+        default: "15"
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: |
+          pip install -e ".[collect]"
+          playwright install --with-deps chromium
+      - name: Where is this runner
+        run: curl -s https://ipinfo.io/json || true
+      - name: Probe
+        run: |
+          python scripts/probe_sources.py \
+            --out data/source_probe_report.json \
+            --settle ${{ github.event.inputs.settle || '15' }} \
+            --lead-days ${{ github.event.inputs.lead_days || '15' }} \
+            ${{ github.event.inputs.only && format('--only {0}', github.event.inputs.only) || '' }}
+      - name: Commit the report
+        run: |
+          git config user.name  "apix-collector"
+          git config user.email "actions@github.com"
+          git add data/source_probe_report.json
+          git diff --staged --quiet || (git commit -m "probe: source availability report from a US runner" && git push)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-probe-report
+          path: data/source_probe_report.json

@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.local
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+# Simulated fixtures must never be committed. scripts/simulate.py writes here, and
+# index.build refuses to publish anything sourced from it. Belt and braces.
+data/_simulation/
+data/index_sim/
