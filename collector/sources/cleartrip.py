@@ -1,4 +1,16 @@
-"""Cleartrip — OTA. Public search results page, no account."""
+"""Cleartrip — disabled. Their robots.txt is unreachable from our runner.
+
+Probe result, 2026-08-25: `robots.txt returned HTTP 403 — failing closed`.
+
+This is not Cleartrip blocking our *scraping*; it is Cleartrip's edge refusing to serve
+`robots.txt` itself to a datacentre IP. We cannot read their crawl rules, so under the
+fail-closed rule in docs/scraping-policy.md we do not fetch anything from the domain.
+
+That rule costs us a source here, which is exactly when a rule is worth having. Treating an
+unreachable robots.txt as permission is how well-intentioned scrapers end up in incident
+reports, and "we could not read their policy so we assumed it allowed us" is not a sentence
+anyone wants to say to a panel.
+"""
 
 from __future__ import annotations
 
@@ -10,11 +22,12 @@ class Cleartrip(Source):
     spec = SourceSpec(
         name="cleartrip",
         domain="www.cleartrip.com",
-        enabled=True,
+        enabled=False,
         needs_browser=True,
-        confidence="unverified",
-        notes="Third reading. Kept disabled-by-default in the runner until the first two "
-        "are boring — adding a flaky third source is a regression, not progress.",
+        confidence="retired",
+        notes="Disabled 2026-08-25: robots.txt returns HTTP 403 to our runner, so we cannot "
+        "read their crawl rules and we fail closed. Re-probe if collection ever moves to an "
+        "Indian IP, where robots.txt may well be served normally.",
     )
 
     def search_url(self, cell: Cell) -> str:

@@ -80,6 +80,34 @@ class EndpointHit:
         return s
 
 
+def json_skeleton(node, depth: int = 0, max_depth: int = 9):
+    """A type map of a payload: same shape, no bulk.
+
+    OTA fare responses run to megabytes of abbreviated keys. To write an extractor you need
+    the *shape* — which key holds the airline, which holds the all-in fare, how deep the
+    itinerary array sits — and none of the volume. So arrays collapse to their first element
+    and scalars are replaced by their type plus one example value.
+
+    Everything here is a public fare quote, so there is nothing sensitive to redact; the
+    reason to summarise is that a 2 MB dump is unreadable, not that it is private.
+    """
+    if depth > max_depth:
+        return "<max depth>"
+    if isinstance(node, dict):
+        return {k: json_skeleton(v, depth + 1, max_depth) for k, v in list(node.items())[:60]}
+    if isinstance(node, list):
+        if not node:
+            return []
+        return [json_skeleton(node[0], depth + 1, max_depth), f"<+{len(node) - 1} more>"]
+    if isinstance(node, str):
+        return f"str: {node[:40]!r}"
+    if isinstance(node, bool):
+        return f"bool: {node}"
+    if node is None:
+        return "null"
+    return f"{type(node).__name__}: {node}"
+
+
 @dataclass
 class SourceProbe:
     name: str
@@ -93,6 +121,7 @@ class SourceProbe:
     error: str | None = None
     endpoints: list[EndpointHit] = field(default_factory=list)
     verdict: str = "not_probed"
+    payload_schema: dict | None = None
 
 
 def _walk_numbers(obj, out: list[float], depth: int = 0) -> None:
@@ -177,7 +206,9 @@ def build_targets(dep: date) -> list[SourceProbe]:
     ]
 
 
-async def probe_one(browser, probe: SourceProbe, gate: RobotsGate, settle_seconds: float) -> SourceProbe:
+async def probe_one(
+    browser, probe: SourceProbe, gate: RobotsGate, settle_seconds: float, dump_schema: bool = False
+) -> SourceProbe:
     decision = gate.check(probe.search_url)
     probe.robots_allowed = decision.allowed
     probe.robots_reason = decision.reason
@@ -196,6 +227,7 @@ async def probe_one(browser, probe: SourceProbe, gate: RobotsGate, settle_second
     )
     page = await context.new_page()
     hits: dict[str, EndpointHit] = {}
+    bodies: dict[str, object] = {}
 
     async def on_response(response):
         try:
@@ -235,6 +267,8 @@ async def probe_one(browser, probe: SourceProbe, gate: RobotsGate, settle_second
             prev = hits.get(hit.url)
             if prev is None or hit.score > prev.score:
                 hits[hit.url] = hit
+                if parsed is not None:
+                    bodies[hit.url] = parsed
         except Exception:  # noqa: BLE001 — a probe must never die on one odd response
             return
 
@@ -256,6 +290,14 @@ async def probe_one(browser, probe: SourceProbe, gate: RobotsGate, settle_second
         await context.close()
 
     probe.endpoints = sorted(hits.values(), key=lambda h: h.score, reverse=True)[:6]
+    if dump_schema and probe.endpoints:
+        top = probe.endpoints[0].url
+        if top in bodies:
+            probe.payload_schema = {
+                "endpoint": top,
+                "method": probe.endpoints[0].method,
+                "skeleton": json_skeleton(bodies[top]),
+            }
 
     if probe.bot_wall:
         probe.verdict = "bot_wall"
@@ -285,6 +327,12 @@ async def main() -> None:
     ap.add_argument("--lead-days", type=int, default=15)
     ap.add_argument("--settle", type=float, default=12.0, help="seconds to let XHRs land")
     ap.add_argument("--only", help="comma-separated source names")
+    ap.add_argument(
+        "--dump-schema",
+        action="store_true",
+        help="write a type skeleton of the top endpoint's payload, so an "
+        "extractor can be written against the real shape",
+    )
     args = ap.parse_args()
 
     from playwright.async_api import async_playwright
@@ -301,7 +349,7 @@ async def main() -> None:
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(args=["--disable-blink-features=AutomationControlled"])
         for t in targets:
-            results.append(await probe_one(browser, t, gate, args.settle))
+            results.append(await probe_one(browser, t, gate, args.settle, args.dump_schema))
             await asyncio.sleep(6)  # politeness between domains
         await browser.close()
 

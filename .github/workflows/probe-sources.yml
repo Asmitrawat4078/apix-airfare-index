@@ -14,6 +14,7 @@ on:
   push:
     paths:
       - ".github/probe-trigger"
+      - ".github/probe-args"
       - "scripts/probe_sources.py"
       - "collector/sources/**"
   workflow_dispatch:
@@ -47,20 +48,33 @@ jobs:
       - name: Where is this runner
         run: curl -s https://ipinfo.io/json || true
       - name: Probe
+        # Arguments come from .github/probe-args when the run was triggered by a push, and
+        # from the workflow_dispatch inputs otherwise. The file exists so that anything able
+        # to push a commit can steer the probe — including an agent working through git alone,
+        # with no access to the Actions UI.
         run: |
-          python scripts/probe_sources.py \
-            --out data/source_probe_report.json \
-            --settle ${{ github.event.inputs.settle || '15' }} \
-            --lead-days ${{ github.event.inputs.lead_days || '15' }} \
-            ${{ github.event.inputs.only && format('--only {0}', github.event.inputs.only) || '' }}
+          ARGS=""
+          if [ -f .github/probe-args ]; then
+            ARGS="$(grep -v '^#' .github/probe-args | tr '\n' ' ')"
+            echo "using args from .github/probe-args: $ARGS"
+          fi
+          if [ -n "${{ github.event.inputs.only }}" ]; then
+            ARGS="$ARGS --only ${{ github.event.inputs.only }}"
+          fi
+          if [ -n "${{ github.event.inputs.settle }}" ]; then
+            ARGS="$ARGS --settle ${{ github.event.inputs.settle }}"
+          fi
+          python scripts/probe_sources.py --out data/source_probe_report.json $ARGS
       - name: Commit the report
         run: |
           git config user.name  "apix-collector"
           git config user.email "actions@github.com"
-          git add data/source_probe_report.json
+          git add data/source_probe_report.json data/probe_payload_schema*.json 2>/dev/null || git add data/source_probe_report.json
           git diff --staged --quiet || (git commit -m "probe: source availability report from a US runner" && git push)
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: source-probe-report
-          path: data/source_probe_report.json
+          path: |
+            data/source_probe_report.json
+            data/probe_payload_schema*.json

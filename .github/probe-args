@@ -1,0 +1,5 @@
+# Arguments passed to scripts/probe_sources.py on a push-triggered run.
+# One per line; blank lines and comments ignored.
+--only easemytrip,ixigo
+--settle 30
+--dump-schema

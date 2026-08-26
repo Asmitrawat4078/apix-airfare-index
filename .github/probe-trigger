@@ -1,6 +1,15 @@
 Touch this file and push to run the source probe.
 Each line below records a probe run and why it was requested.
 
-2026-08-25 — first run. Nothing has ever been collected; we do not yet know whether
-any Indian OTA will answer a GitHub Actions runner in Azure US. This is the highest-risk
-unknown in the project and everything downstream depends on the answer.
+2026-08-25 run 1 — first ever. Nothing had been collected and we did not know whether any
+Indian OTA would answer a GitHub Actions runner in Azure US.
+  RESULT: EaseMyTrip answers cleanly. robots.txt allows the path, no bot wall, and the
+  booking widget calls POST flightservice-node.easemytrip.com/AirAvail_Lights/AirBus_New
+  returning 2.0 MB of JSON with 307 fare-shaped keys and fares from 1535 to 6218 INR on
+  DEL-BOM at T+15. ixigo rendered its results page but streamed fares in after our 15s
+  settle window. Cleartrip, Yatra, MakeMyTrip and Akasa serve no readable robots.txt to a
+  datacentre IP, so we fail closed and leave them alone. Goibibo drops the connection.
+
+2026-08-25 run 2 — dump the EaseMyTrip payload skeleton so a precise extractor can be
+written against the real shape rather than the generic structural harvester, and give
+ixigo a 30-second settle to see whether its fares land after all.

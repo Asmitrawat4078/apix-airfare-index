@@ -1,0 +1,1099 @@
+<title>APIx Build Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+  /* ============================================================
+     Tokens — complete light palette on bare :root.
+     Neutrals carry a slight teal bias so they read as chosen
+     rather than inherited; the accent is a plot-line teal and
+     the secondary an ochre, the two colours you would actually
+     draw two series in.
+     ============================================================ */
+  :root {
+    --paper:      #F2F5F6;
+    --surface:    #FFFFFF;
+    --surface-2:  #E8EDEF;
+    --rule:       #CBD6D9;
+    --rule-soft:  #DEE6E8;
+
+    --ink:        #0E1D22;
+    --ink-2:      #33474E;
+    --muted:      #5F757C;
+    --faint:      #8598A0;
+
+    --accent:     #0B5F6B;
+    --accent-2:   #12808F;
+    --accent-ink: #FFFFFF;
+    --band:       rgba(11, 95, 107, 0.13);
+    --band-2:     rgba(11, 95, 107, 0.07);
+
+    --ochre:      #9A6A0B;
+    --ochre-soft: rgba(154, 106, 11, 0.12);
+
+    --good:       #1A6B4C;
+    --good-soft:  rgba(26, 107, 76, 0.13);
+    --wait:       #8A5A12;
+    --wait-soft:  rgba(138, 90, 18, 0.13);
+    --open:       #7A3B2E;
+    --open-soft:  rgba(122, 59, 46, 0.12);
+
+    --shadow:     0 1px 2px rgba(14, 29, 34, .05), 0 8px 24px -14px rgba(14, 29, 34, .18);
+
+    --measure:    66ch;
+    --pad:        clamp(1.15rem, 4vw, 2.5rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0B1417;
+      --surface:    #111E22;
+      --surface-2:  #16272C;
+      --rule:       #273B41;
+      --rule-soft:  #1C2E33;
+
+      --ink:        #E6EEF0;
+      --ink-2:      #BCCED3;
+      --muted:      #8CA3AA;
+      --faint:      #63797F;
+
+      --accent:     #3FB3C2;
+      --accent-2:   #61CBD8;
+      --accent-ink: #06171A;
+      --band:       rgba(63, 179, 194, 0.18);
+      --band-2:     rgba(63, 179, 194, 0.09);
+
+      --ochre:      #D8A63F;
+      --ochre-soft: rgba(216, 166, 63, 0.15);
+
+      --good:       #4FBE92;
+      --good-soft:  rgba(79, 190, 146, 0.16);
+      --wait:       #D6A251;
+      --wait-soft:  rgba(214, 162, 81, 0.16);
+      --open:       #DE8B76;
+      --open-soft:  rgba(222, 139, 118, 0.15);
+
+      --shadow:     0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -16px rgba(0, 0, 0, .7);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0B1417;
+    --surface:    #111E22;
+    --surface-2:  #16272C;
+    --rule:       #273B41;
+    --rule-soft:  #1C2E33;
+
+    --ink:        #E6EEF0;
+    --ink-2:      #BCCED3;
+    --muted:      #8CA3AA;
+    --faint:      #63797F;
+
+    --accent:     #3FB3C2;
+    --accent-2:   #61CBD8;
+    --accent-ink: #06171A;
+    --band:       rgba(63, 179, 194, 0.18);
+    --band-2:     rgba(63, 179, 194, 0.09);
+
+    --ochre:      #D8A63F;
+    --ochre-soft: rgba(216, 166, 63, 0.15);
+
+    --good:       #4FBE92;
+    --good-soft:  rgba(79, 190, 146, 0.16);
+    --wait:       #D6A251;
+    --wait-soft:  rgba(214, 162, 81, 0.16);
+    --open:       #DE8B76;
+    --open-soft:  rgba(222, 139, 118, 0.15);
+
+    --shadow:     0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -16px rgba(0, 0, 0, .7);
+  }
+
+  /* ============================================================ */
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 var(--pad) 5rem;
+  }
+
+  .col { max-width: var(--measure); }
+
+  h1, h2, h3 {
+    font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+    text-wrap: balance;
+    margin: 0;
+    letter-spacing: -0.011em;
+  }
+
+  p { margin: 0; }
+
+  a { color: var(--accent); text-decoration-color: var(--band); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: currentColor; }
+  a:focus-visible,
+  details > summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-ligatures: none;
+  }
+
+  code {
+    font-size: 0.855em;
+    background: var(--surface-2);
+    padding: 0.12em 0.38em;
+    border-radius: 3px;
+    color: var(--ink-2);
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.695rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  /* ---- The band motif: a shaded strip echoing the sensitivity band,
+          which is both the project's signature chart and its argument. ---- */
+  .bandrule {
+    height: 9px;
+    border-radius: 2px;
+    background: linear-gradient(
+      to bottom,
+      var(--band-2) 0 3px,
+      var(--band) 3px 6px,
+      var(--accent) 6px 7px,
+      transparent 7px
+    );
+  }
+
+  /* ============================================================
+     Masthead
+     ============================================================ */
+
+  header.masthead {
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface);
+  }
+
+  .masthead-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 1.15rem var(--pad);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .wordmark {
+    font-family: "IBM Plex Serif", serif;
+    font-weight: 600;
+    font-size: 1.32rem;
+    letter-spacing: -0.02em;
+  }
+  .wordmark span { color: var(--accent); }
+
+  .masthead-meta {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.735rem;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+
+  /* ============================================================
+     Hero
+     ============================================================ */
+
+  .hero { padding: clamp(2.75rem, 8vw, 4.75rem) 0 2.5rem; }
+
+  .hero .bandrule { max-width: 168px; margin-bottom: 1.9rem; }
+
+  .thesis {
+    font-family: "IBM Plex Serif", serif;
+    font-size: clamp(1.6rem, 4.2vw, 2.6rem);
+    line-height: 1.24;
+    font-weight: 400;
+    letter-spacing: -0.021em;
+    max-width: 22ch;
+  }
+  .thesis em { font-style: italic; color: var(--accent); }
+
+  .hero-sub {
+    margin-top: 1.5rem;
+    max-width: var(--measure);
+    color: var(--ink-2);
+    font-size: 1.045rem;
+  }
+
+  /* ============================================================
+     Metric strip
+     ============================================================ */
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 2.6rem;
+  }
+
+  .metric {
+    background: var(--surface);
+    padding: 1.05rem 1.15rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+  }
+
+  .metric .n {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 1.62rem;
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .metric .n small { font-size: 0.58em; color: var(--muted); font-weight: 400; }
+  .metric .k { font-size: 0.775rem; color: var(--muted); line-height: 1.42; }
+
+  /* ============================================================
+     Sections
+     ============================================================ */
+
+  section { margin-top: clamp(3.25rem, 8vw, 5rem); }
+
+  .sechead {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 1.9rem;
+    flex-wrap: wrap;
+  }
+  .sechead h2 {
+    font-size: clamp(1.24rem, 2.9vw, 1.58rem);
+    font-weight: 600;
+  }
+  .sechead .eyebrow { margin-left: auto; }
+
+  .lede {
+    max-width: var(--measure);
+    color: var(--ink-2);
+    margin-bottom: 1.75rem;
+  }
+
+  /* ---- status list ---- */
+
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+    gap: 0.9rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule-soft);
+    border-radius: 5px;
+    padding: 1.05rem 1.15rem;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .card h3 {
+    font-size: 0.99rem;
+    font-weight: 600;
+    font-family: "IBM Plex Sans", sans-serif;
+    letter-spacing: -0.004em;
+  }
+  .card p { font-size: 0.885rem; color: var(--muted); line-height: 1.55; }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    justify-content: space-between;
+  }
+
+  .pill {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.655rem;
+    font-weight: 500;
+    letter-spacing: 0.085em;
+    text-transform: uppercase;
+    padding: 0.24em 0.6em;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .pill.done { background: var(--good-soft); color: var(--good); }
+  .pill.wait { background: var(--wait-soft); color: var(--wait); }
+  .pill.open { background: var(--open-soft); color: var(--open); }
+
+  /* ---- tables ---- */
+
+  .tablewrap {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    background: var(--surface);
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 620px;
+    font-size: 0.875rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.72rem 0.95rem;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  thead th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.685rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    font-weight: 500;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--rule);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  td strong { font-weight: 600; }
+  .headline-row { background: var(--band-2); }
+
+  /* ---- callout ---- */
+
+  .callout {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    border-radius: 5px;
+    padding: 1.35rem 1.45rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .callout h3 {
+    font-family: "IBM Plex Serif", serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  .callout p { color: var(--ink-2); font-size: 0.94rem; }
+
+  .readout {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.83rem;
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+    line-height: 1.75;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .readout b { color: var(--ink); font-weight: 600; }
+  .readout .flag { color: var(--ochre); }
+
+  .fixture-note {
+    font-size: 0.79rem;
+    color: var(--ochre);
+    background: var(--ochre-soft);
+    border-radius: 3px;
+    padding: 0.5rem 0.7rem;
+    line-height: 1.5;
+  }
+
+  /* ---- decisions ---- */
+
+  .decisions { display: flex; flex-direction: column; gap: 0; }
+
+  .decision {
+    display: grid;
+    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+    gap: 0.35rem 2rem;
+    padding: 1.3rem 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .decision:last-child { border-bottom: none; }
+  .decision dt {
+    font-family: "IBM Plex Serif", serif;
+    font-size: 1.02rem;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.4;
+  }
+  .decision dd {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 0.935rem;
+  }
+  .decision dd + dd {
+    margin-top: 0.5rem;
+    color: var(--muted);
+    font-size: 0.86rem;
+  }
+
+  @media (max-width: 660px) {
+    .decision { grid-template-columns: 1fr; gap: 0.4rem; }
+  }
+
+  /* ---- the plan: a real sequence, so it is numbered ---- */
+
+  .days { display: flex; flex-direction: column; gap: 0; }
+
+  .day {
+    display: grid;
+    grid-template-columns: 4.6rem minmax(0, 1fr);
+    gap: 1.4rem;
+    padding: 1.15rem 0;
+    border-bottom: 1px solid var(--rule-soft);
+    align-items: start;
+  }
+  .day:last-child { border-bottom: none; }
+
+  .day-n {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.735rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--faint);
+    padding-top: 0.22rem;
+    white-space: nowrap;
+  }
+  .day.now .day-n { color: var(--accent); }
+
+  .day-body h3 {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.985rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .day-body p { font-size: 0.9rem; color: var(--muted); margin-top: 0.3rem; }
+
+  @media (max-width: 560px) {
+    .day { grid-template-columns: 1fr; gap: 0.4rem; }
+  }
+
+  /* ---- rules list ---- */
+
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(252px, 1fr)); gap: 1.4rem 2rem; }
+  .rule-item { display: flex; flex-direction: column; gap: 0.3rem; }
+  .rule-item .t {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--ink);
+  }
+  .rule-item .d { font-size: 0.865rem; color: var(--muted); line-height: 1.55; }
+
+  /* ---- risks ---- */
+
+  details.risk {
+    border: 1px solid var(--rule-soft);
+    border-radius: 5px;
+    background: var(--surface);
+    padding: 0;
+    margin-bottom: 0.65rem;
+  }
+  details.risk summary {
+    cursor: pointer;
+    padding: 0.9rem 1.1rem;
+    font-weight: 600;
+    font-size: 0.93rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    list-style: none;
+  }
+  details.risk summary::-webkit-details-marker { display: none; }
+  details.risk summary::after {
+    content: "+";
+    margin-left: auto;
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--faint);
+    font-weight: 400;
+  }
+  details.risk[open] summary::after { content: "\2212"; }
+  details.risk .body {
+    padding: 0 1.1rem 1.1rem;
+    font-size: 0.895rem;
+    color: var(--ink-2);
+    max-width: var(--measure);
+  }
+  details.risk .body p + p { margin-top: 0.7rem; }
+
+  footer {
+    margin-top: clamp(3.5rem, 8vw, 5rem);
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.845rem;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.6rem;
+    justify-content: space-between;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="wordmark">APIx<span>.</span></div>
+    <div class="masthead-meta">SIH26056 &middot; MoSPI &middot; basket v1 frozen &middot; 25 Aug 2026</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="bandrule"></div>
+    <h1 class="thesis">
+      When a market prices dynamically, <em>when you look</em> decides the inflation number you print.
+    </h1>
+    <p class="hero-sub">
+      Right now that choice is implicit. APIx makes it explicit, auditable and reproducible &mdash; a daily
+      matched-model price index for Indian domestic airfares, built to a standard the National Statistical
+      Office could actually consume. This page is the build room: what exists, what each decision was, and
+      what is still open.
+    </p>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="n">120</div>
+        <div class="k">basket cells collected every day, at a fixed IST time</div>
+      </div>
+      <div class="metric">
+        <div class="n">22.2<small>%</small></div>
+        <div class="k">of India&rsquo;s domestic passengers covered by the 12 frozen city pairs</div>
+      </div>
+      <div class="metric">
+        <div class="n">4</div>
+        <div class="k">independent index constructions, published side by side</div>
+      </div>
+      <div class="metric">
+        <div class="n">35</div>
+        <div class="k">tests green, including the index maths to ten decimal places</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== BUILD STATE ===================== -->
+  <section>
+    <div class="sechead">
+      <h2>What exists</h2>
+      <span class="eyebrow">Build state</span>
+    </div>
+    <p class="lede">
+      The index is the deliverable; the scraper is plumbing. Effort went to the statistical layer first,
+      which is why the hardest part is finished and the riskiest part is still being verified.
+    </p>
+
+    <div class="status-grid">
+      <div class="card">
+        <div class="card-top"><h3>Frozen basket</h3><span class="pill done">Done</span></div>
+        <p>
+          12 directional city pairs, 24 directed routes, five lead-time strata. Weights from real DGCA
+          city-pair passenger volumes over a trailing twelve months. CI recomputes them from source and
+          checks the file&rsquo;s SHA-256 on every push.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Index engine</h3><span class="pill done">Done</span></div>
+        <p>
+          Jevons elementary aggregates, donor imputation, chaining, GEKS multilateral, direct fixed-base,
+          hedonic time-dummy, and revision vintages. Checked against a worked example computed by hand.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Immutable raw layer</h3><span class="pill done">Done</span></div>
+        <p>
+          Postgres on Supabase, Mumbai region. Append-only is enforced by database rule, not convention
+          &mdash; and it was tested by deliberately running <code>UPDATE</code> and <code>DELETE</code>
+          against a row and confirming it survived both untouched.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Collector</h3><span class="pill done">Done</span></div>
+        <p>
+          robots.txt gate with a logged audit trail, per-domain rate limiting with jitter, exponential
+          backoff, and challenge detection that backs off rather than solving. Writes to Postgres and to
+          CSV in git, every run.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>API &amp; dashboard</h3><span class="pill done">Done</span></div>
+        <p>
+          Versioned FastAPI with a published OpenAPI spec; every value carries its availability rate.
+          Streamlit dashboard with the index band, lead-time curve, route heatmap, availability panel and
+          robustness comparison.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Source verification</h3><span class="pill wait">Probing</span></div>
+        <p>
+          Every source adapter is marked <code>unverified</code> until a probe confirms it from the machine
+          that will actually collect. This is the one thing a development laptop cannot answer, and the
+          risk that quietly ends most attempts at this problem statement.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FOUR CONSTRUCTIONS ===================== -->
+  <section>
+    <div class="sechead">
+      <h2>Four ways of computing the same number</h2>
+      <span class="eyebrow">Differentiator</span>
+    </div>
+    <p class="lede">
+      The honest answer to <em>&ldquo;why should we trust your index?&rdquo;</em> is not &ldquo;trust
+      it&rdquo;. It is: here are four constructions built on different principles, here is where they
+      disagree, and here is the mechanism that explains the gap.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Series</th>
+            <th>How it is built</th>
+            <th>What it is good at</th>
+            <th>Where it fails</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="headline-row">
+            <td><strong>Chained Jevons</strong><br><span class="eyebrow">Headline</span></td>
+            <td>Day-on-day matched relatives, multiplied</td>
+            <td>Standard CPI construction; revises cleanly; each day&rsquo;s movement is attributable to that day&rsquo;s observations</td>
+            <td>Accumulates sampling noise &mdash; chain drift</td>
+          </tr>
+          <tr>
+            <td><strong>Direct fixed-base</strong></td>
+            <td>Every day compared straight back to day one</td>
+            <td>Immune to drift by construction</td>
+            <td>Matched sample shrinks as the market turns over</td>
+          </tr>
+          <tr>
+            <td><strong>GEKS-Jevons</strong></td>
+            <td>Geometric mean of <em>every</em> bilateral path in a rolling window, mean-spliced</td>
+            <td>Transitive &mdash; drift has nowhere to accumulate. What Eurostat and the ILO recommend for high-frequency data</td>
+            <td>Computationally heavier; revises the whole window</td>
+          </tr>
+          <tr>
+            <td><strong>Hedonic time-dummy</strong></td>
+            <td>Weighted regression on every quote, with fixed effects for route, carrier, lead time, day of week, departure hour and Indian holidays</td>
+            <td>Quality-adjusted; uses the unmatched sample too; comes with a confidence interval</td>
+            <td>Needs volume before it identifies</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== THE FINDING ===================== -->
+  <section>
+    <div class="sechead">
+      <h2>A bug that turned out to be a finding</h2>
+      <span class="eyebrow">Chain drift</span>
+    </div>
+
+    <div class="callout">
+      <h3>The chained index and the hedonic disagreed. They shouldn&rsquo;t have.</h3>
+      <p>
+        Both were built exactly as specified. Run over a long fixture, they correlated at 0.20 &mdash; far
+        worse than two measurements of the same thing should. That is not a coding error. Chaining
+        multiplies daily relatives together, so <strong>sampling noise accumulates as a random walk even
+        when prices do not move.</strong> It is the central reason official statisticians moved to
+        multilateral index methods for scanner and web-scraped data.
+      </p>
+      <p>
+        So GEKS-Jevons went in, and the drift is now published as a measured number with its trend per day
+        rather than assumed away. If that gap keeps growing with series length, GEKS gets promoted to
+        headline &mdash; and we will see it coming instead of discovering it in December.
+      </p>
+
+      <div class="readout">
+chained&nbsp;&nbsp;<b>101.92</b><br>
+GEKS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&nbsp;97.75</b><br>
+direct&nbsp;&nbsp;&nbsp;<b>&nbsp;97.06</b><br>
+<br>
+gap trend&nbsp;&nbsp;<span class="flag">+0.078 index points per day</span><br>
+verdict&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">consistent with chain drift</span>
+      </div>
+
+      <p class="fixture-note">
+        These figures come from a labelled test fixture, not from collected fares &mdash; the collector has
+        not yet produced a series long enough to diagnose drift. The fixture generator refuses to run
+        without an explicit environment flag, writes only to a gitignored directory, prefixes every row
+        <code>SIMULATED_</code>, and the index builder raises rather than publishing anything sourced from
+        it. Five independent safeguards, because a fabricated number reaching a published series is the
+        worst thing that could happen to this project.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== DECISIONS ===================== -->
+  <section>
+    <div class="sechead">
+      <h2>Decisions we can defend</h2>
+      <span class="eyebrow">Methodology</span>
+    </div>
+    <p class="lede">
+      A dozen teams will demo a scraper. Almost none will be able to say why their number was computed the
+      way it was. Each of these is a choice, with an alternative that was considered and rejected.
+    </p>
+
+    <dl class="decisions">
+      <div class="decision">
+        <dt>Geometric mean, not arithmetic</dt>
+        <dd>
+          Jevons within each stratum &mdash; Eurostat&rsquo;s recommended elementary aggregate for
+          web-scraped data. Base-period invariant, passes time reversal, and damps the downward bias from
+          non-random missingness.
+        </dd>
+        <dd>
+          Dutot would let a &#8377;22,000 last-minute fare dominate a &#8377;6,000 one. Carli fails time
+          reversal outright &mdash; there is a unit test specifically to catch an accidental regression to it.
+        </dd>
+      </div>
+
+      <div class="decision">
+        <dt>Three lead-time scenarios, not one weight</dt>
+        <dd>
+          Nobody publishes how far in advance Indians book. Rather than invent a booking curve, the index
+          runs under near-term-heavy, uniform and advance-heavy assumptions, and the spread is published
+          as a band.
+        </dd>
+        <dd>
+          The band width is itself a finding: where the scenarios agree the headline is robust to what we
+          don&rsquo;t know; where they diverge, the number rests on an assumption no one has data for.
+        </dd>
+      </div>
+
+      <div class="decision">
+        <dt>Sold out and blocked are never merged</dt>
+        <dd>
+          A sold-out cell is information about the market &mdash; a demand signal the CPI cannot currently
+          produce. A blocked cell is information about us. They are counted, charted and reported separately.
+        </dd>
+        <dd>
+          Collapsing them would let our own scraping failures masquerade as market scarcity, which is the
+          single most dangerous thing a price index can do to itself.
+        </dd>
+      </div>
+
+      <div class="decision">
+        <dt>Carry-forward is prohibited</dt>
+        <dd>
+          Missing strata are imputed by the movement of their nearest observed donor &mdash; same route
+          first, then same lead time, then all items. Every imputed cell is flagged with the tier used.
+        </dd>
+        <dd>
+          Repeating yesterday&rsquo;s price asserts zero change on no evidence, and flattens the series
+          exactly when the market is moving most. A day with nothing observed anywhere publishes a
+          <em>gap</em>, not a number.
+        </dd>
+      </div>
+
+      <div class="decision">
+        <dt>Revisions are a resource, not a footnote</dt>
+        <dd>
+          Every value is stored with its computation timestamp. Recomputing a day creates a new vintage
+          beside the old one; nothing is ever overwritten, and the difference is queryable.
+        </dd>
+        <dd>
+          Statistics agencies care about revisions more than almost anything, and no student project
+          implements them.
+        </dd>
+      </div>
+
+      <div class="decision">
+        <dt>The DGCA file needed real cleaning</dt>
+        <dd>
+          Mumbai appears under two labels in the source and Goa under three. Treat them as separate cities
+          and DEL&ndash;BOM&rsquo;s weight is understated by roughly 40%, while Goa disappears entirely.
+        </dd>
+        <dd>
+          The mapping is hand-checked and explicit rather than fuzzy-matched. Unmapped labels are down to
+          0.7% of traffic, and that residual is reported rather than swallowed.
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <!-- ===================== ETHICS ===================== -->
+  <section>
+    <div class="sechead">
+      <h2>Collected within hard limits</h2>
+      <span class="eyebrow">Scraping policy</span>
+    </div>
+    <p class="lede">
+      Every rule below is enforced in code, and the policy document names the file that enforces each one.
+      When someone asks whether this is legal, the answer should be a query you can run, not a claim on a slide.
+    </p>
+
+    <div class="rules">
+      <div class="rule-item">
+        <div class="t">Every robots decision is logged</div>
+        <div class="d">
+          Parsed per domain before every request and written to a queryable table &mdash; URL, verdict,
+          reason, crawl-delay. Fail-closed: an unreachable robots.txt means we do not scrape that domain.
+        </div>
+      </div>
+      <div class="rule-item">
+        <div class="t">We never hide who we are</div>
+        <div class="d">
+          The User-Agent names the project, links the repository and carries a contact email. No rotation,
+          no residential proxies, no spoofed browser identity.
+        </div>
+      </div>
+      <div class="rule-item">
+        <div class="t">Slow on purpose</div>
+        <div class="d">
+          One request per domain every few seconds, randomised, with exponential backoff. We need 120 cells
+          a day, not 120 a minute &mdash; speed buys nothing and costs the whole argument.
+        </div>
+      </div>
+      <div class="rule-item">
+        <div class="t">We never solve a CAPTCHA</div>
+        <div class="d">
+          A challenge page means the cell is recorded <code>blocked</code> and imputation handles it.
+          Correctly-handled missingness is the answer a statistics agency would give.
+        </div>
+      </div>
+      <div class="rule-item">
+        <div class="t">Public pages only</div>
+        <div class="d">
+          No accounts, no logins, no paywall bypass. Every URL is one a member of the public reaches
+          through a site&rsquo;s own search form.
+        </div>
+      </div>
+      <div class="rule-item">
+        <div class="t">No personal data, ever</div>
+        <div class="d">
+          Prices only. That is precisely why the DPDP Act does not attach, and saying so up front pre-empts
+          the question rather than waiting for it.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PLAN ===================== -->
+  <section>
+    <div class="sechead">
+      <h2>Six days</h2>
+      <span class="eyebrow">Sequence</span>
+    </div>
+    <p class="lede">
+      One constraint shapes the whole ordering: <strong>you cannot go back and scrape what a fare was last
+      Tuesday.</strong> Every day the collector is not running is a day permanently missing from the end of
+      the series, so it starts on day zero and everything else is built around a clock already ticking.
+    </p>
+
+    <div class="days">
+      <div class="day now">
+        <div class="day-n">Day 0</div>
+        <div class="day-body">
+          <h3>The clock starts <span class="pill done">Done</span></h3>
+          <p>
+            Repo public, basket frozen from DGCA data, database live with immutability tested, index engine
+            complete and unit-tested, collector built, API and dashboard running, docs written. Source probe
+            dispatched.
+          </p>
+        </div>
+      </div>
+      <div class="day">
+        <div class="day-n">Day 1</div>
+        <div class="day-body">
+          <h3>Make one source boring <span class="pill wait">Next</span></h3>
+          <p>
+            Read the probe, pin the winning fare endpoint, write its real extractor, and let the cron fire
+            unattended twice. One source you would bet the month on &mdash; not three badly.
+          </p>
+        </div>
+      </div>
+      <div class="day">
+        <div class="day-n">Day 2</div>
+        <div class="day-body">
+          <h3>Second and third sources <span class="pill open">Planned</span></h3>
+          <p>
+            Only now. Prefer genuinely independent inventory: a metasearch aggregator plus a direct OTA is
+            two readings; two aggregators reselling one feed is one reading twice.
+          </p>
+        </div>
+      </div>
+      <div class="day">
+        <div class="day-n">Day 3</div>
+        <div class="day-body">
+          <h3>The index meets real fares <span class="pill open">Planned</span></h3>
+          <p>
+            Build on real days, read the imputation tiers before interpreting anything, and sanity-check two
+            cells against a manual search &mdash; the check no unit test substitutes for.
+          </p>
+        </div>
+      </div>
+      <div class="day">
+        <div class="day-n">Day 4</div>
+        <div class="day-body">
+          <h3>Make it visible <span class="pill open">Planned</span></h3>
+          <p>
+            Deploy dashboard and API, pull the CPI air-transport benchmark from eSankhyiki, and get one
+            credible screenshot with real data on it.
+          </p>
+        </div>
+      </div>
+      <div class="day">
+        <div class="day-n">Day 5</div>
+        <div class="day-body">
+          <h3>Evidence and honesty <span class="pill open">Planned</span></h3>
+          <p>
+            Back-test on log changes rather than levels. Then parallel manual collection on five cells,
+            proving the collector reads what a human sees &mdash; the strongest single piece of validation
+            available.
+          </p>
+        </div>
+      </div>
+      <div class="day">
+        <div class="day-n">Day 6</div>
+        <div class="day-body">
+          <h3>Ship <span class="pill open">Planned</span></h3>
+          <p>
+            Twelve slides at three minutes. Two-minute recording ending on the Actions run history &mdash;
+            unfakeable evidence that this ran every day without anyone watching. Submit early.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== RISKS ===================== -->
+  <section>
+    <div class="sechead">
+      <h2>What could still go wrong</h2>
+      <span class="eyebrow">Open risks</span>
+    </div>
+    <p class="lede">
+      Written down before being asked. Having a real answer here is worth more than the answer itself.
+    </p>
+
+    <details class="risk" open>
+      <summary>Every source might wall a foreign datacentre</summary>
+      <div class="body">
+        <p>
+          The collector runs on GitHub Actions, whose runners sit in Azure US. Indian OTAs may behave very
+          differently for a foreign IP than for a consumer in Bengaluru &mdash; and no development machine
+          can tell you which. That is exactly what the probe is running to find out, on day zero rather
+          than week three.
+        </p>
+        <p>
+          If the answer is bad, the options in order are: a self-hosted runner on an Indian IP, free on any
+          machine left switched on; airline sites directly rather than metasearch, which are usually far
+          less defended; or reducing to whichever single source answers, and being explicit about
+          single-source risk in the write-up. What we do not do is evade the block. A project that
+          documents being blocked is credible; one caught working around it is finished.
+        </p>
+      </div>
+    </details>
+
+    <details class="risk">
+      <summary>Quoted fares are not transaction prices</summary>
+      <div class="body">
+        <p>
+          The hardest question the panel will ask. We observe what a consumer is offered, not what anyone
+          paid, so we cannot weight a fare by how many seats sold at it.
+        </p>
+        <p>
+          The CPI already uses offer prices for most of its basket &mdash; a shelf price is not a
+          transaction price either. But the limit is real, so the API carries a documented ingestion point
+          for airline MIS data and the weighting layer already accepts an external weight source. Naming the
+          gap and having architected for it is the honest position.
+        </p>
+      </div>
+    </details>
+
+    <details class="risk">
+      <summary>Missingness is not missing-at-random</summary>
+      <div class="body">
+        <p>
+          Sites throttle hardest during high-traffic periods &mdash; which are exactly the high-demand
+          periods when fares move most. So our imputation assumes more randomness than reality provides,
+          and the bias runs in a direction that matters.
+        </p>
+        <p>
+          Mitigated by multiple sources per route and by publishing the availability rate and the
+          directly-observed weight share on every value, so a reader can discount accordingly. Not solved.
+        </p>
+      </div>
+    </details>
+
+    <details class="risk">
+      <summary>Success would break the transparency</summary>
+      <div class="body">
+        <p>
+          If this became official, publishing the basket, the collection window and the methodology would
+          hand carriers a specification to price against. The standard responses &mdash; conceal the
+          collection instant, widen the randomisation window, keep the basket confidential, rotate a
+          reserve sample &mdash; are configuration changes, not a rewrite, and the randomisation window
+          already exists.
+        </p>
+        <p>
+          For a research prototype, auditability is worth more than resistance to gaming. An index nobody
+          can check is worth nothing regardless of how un-gameable it is.
+        </p>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    <span>APIx &middot; basket v1 &middot; MIT licensed &middot; every number reproducible from the repository alone</span>
+    <span class="mono">github.com/Asmitrawat4078/apix-airfare-index</span>
+  </footer>
+
+</div>
