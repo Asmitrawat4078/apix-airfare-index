@@ -612,8 +612,8 @@
         <div class="k">independent index constructions, published side by side</div>
       </div>
       <div class="metric">
-        <div class="n">35</div>
-        <div class="k">tests green, including the index maths to ten decimal places</div>
+        <div class="n">1</div>
+        <div class="k">fare source verified live from the machine that will collect &mdash; 35 tests green behind it</div>
       </div>
     </div>
   </div>
@@ -675,11 +675,11 @@
       </div>
 
       <div class="card">
-        <div class="card-top"><h3>Source verification</h3><span class="pill wait">Probing</span></div>
+        <div class="card-top"><h3>Source verification</h3><span class="pill done">Answered</span></div>
         <p>
-          Every source adapter is marked <code>unverified</code> until a probe confirms it from the machine
-          that will actually collect. This is the one thing a development laptop cannot answer, and the
-          risk that quietly ends most attempts at this problem statement.
+          A probe driving a real browser from the Azure US runner found a live fare endpoint returning
+          2.0&nbsp;MB of JSON &mdash; robots-allowed, no bot wall, real INR fares. The risk that quietly
+          ends most attempts at this problem statement is closed.
         </p>
       </div>
     </div>
@@ -916,6 +916,15 @@ verdict&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">consistent with chain drift</s
         </div>
       </div>
       <div class="rule-item">
+        <div class="t">We didn&rsquo;t take the shortcut</div>
+        <div class="d">
+          The probe captured the fare request body, so we could POST that endpoint directly and skip the
+          browser. It carries a session token their own page mints &mdash; synthesising it is
+          reverse-engineering an internal API. We load the public page and let their widget call their
+          own endpoint instead.
+        </div>
+      </div>
+      <div class="rule-item">
         <div class="t">No personal data, ever</div>
         <div class="d">
           Prices only. That is precisely why the DPDP Act does not attach, and saying so up front pre-empts
@@ -954,8 +963,8 @@ verdict&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">consistent with chain drift</s
         <div class="day-body">
           <h3>Make one source boring <span class="pill wait">Next</span></h3>
           <p>
-            Read the probe, pin the winning fare endpoint, write its real extractor, and let the cron fire
-            unattended twice. One source you would bet the month on &mdash; not three badly.
+            EaseMyTrip is the one. Write a precise extractor against its real payload shape, then let the
+            cron fire unattended twice. One source you would bet the month on &mdash; not three badly.
           </p>
         </div>
       </div>
@@ -1024,20 +1033,26 @@ verdict&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">consistent with chain drift</s
     </p>
 
     <details class="risk" open>
-      <summary>Every source might wall a foreign datacentre</summary>
+      <summary>Answered: one source works, and only one so far</summary>
       <div class="body">
         <p>
-          The collector runs on GitHub Actions, whose runners sit in Azure US. Indian OTAs may behave very
-          differently for a foreign IP than for a consumer in Bengaluru &mdash; and no development machine
-          can tell you which. That is exactly what the probe is running to find out, on day zero rather
-          than week three.
+          The collector runs on GitHub Actions, whose runners sit in Azure US, and Indian OTAs can behave
+          very differently for a foreign IP than for a consumer in Bengaluru. Probed on day zero rather
+          than week three: <strong>EaseMyTrip answers cleanly</strong> &mdash; robots.txt allows the path,
+          no bot wall, and its booking widget's own endpoint returns 2.0&nbsp;MB of JSON carrying real INR
+          fares. The collector is viable.
         </p>
         <p>
-          If the answer is bad, the options in order are: a self-hosted runner on an Indian IP, free on any
-          machine left switched on; airline sites directly rather than metasearch, which are usually far
-          less defended; or reducing to whichever single source answers, and being explicit about
-          single-source risk in the write-up. What we do not do is evade the block. A project that
-          documents being blocked is credible; one caught working around it is finished.
+          Four other sites &mdash; Cleartrip, Yatra, MakeMyTrip and Akasa &mdash; return 403 or time out on
+          <em>robots.txt itself</em>. They are not blocking our scraping; they will not serve us their
+          crawl rules. Fail-closed means we leave those domains alone. That rule cost four sources in one
+          afternoon, which is precisely when a rule is worth having.
+        </p>
+        <p>
+          What remains is concentration risk: one verified source is a single point of failure. ixigo is
+          being re-probed with a longer settle window, and the residual mitigation is the one already
+          built &mdash; a blocked cell is recorded as <code>blocked</code>, imputation handles it, and the
+          availability rate makes it visible rather than invisible.
         </p>
       </div>
     </details>
