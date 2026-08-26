@@ -1,0 +1,26 @@
+{
+  "endpoint": "https://www.ixigo.com/action/content",
+  "method": "GET",
+  "skeleton": {
+    "iximweb": {
+      "/flight-booking/flight-fare?ixi_src": [
+        "str: 'Assured-Flight-Review'",
+        "<+0 more>"
+      ],
+      "/api/flights/itinerary": [
+        "str: 'Assured-Flight-Review'",
+        "<+0 more>"
+      ]
+    },
+    "confirmtckt": {
+      "/flight-booking/flight-fare?ixi_src": [
+        "str: 'Assured-Flight-Review'",
+        "<+0 more>"
+      ],
+      "/api/flights/itinerary": [
+        "str: 'Assured-Flight-Review'",
+        "<+0 more>"
+      ]
+    }
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "probed_at_utc": "2026-08-26T03:29:22+00:00",
+  "probed_at_utc": "2026-08-26T03:43:31+00:00",
   "departure_date_probed": "2026-09-10",
   "user_agent": "APIx-PriceIndexBot/1.0 (+https://github.com/apix; asmitrawat4078@gmail.com) research crawler for an official-statistics airfare price index (SIH26056)",
   "runner": {
@@ -79,7 +79,7 @@
           "method": "POST",
           "status": 200,
           "content_type": "application/json",
-          "body_bytes": 2029725,
+          "body_bytes": 2029748,
           "fare_key_hits": 307,
           "flight_key_hits": 144,
           "plausible_fare_values": [
@@ -94,10 +94,10 @@
             6150.0,
             6324.0,
             6447.0,
-            6479.0,
-            6733.0,
+            6653.0,
+            6691.0,
             6867.0,
-            7090.0
+            7078.0
           ],
           "sample_keys": [
             "A",
@@ -126,7 +126,7 @@
             "ChangPenalty",
             "ChildPrice"
           ],
-          "request_post_data": "{\"org\":\"DEL\",\"dept\":\"BOM\",\"adt\":\"1\",\"chd\":\"0\",\"inf\":\"0\",\"queryname\":\"8517973b-5ff4-410d-a40b-8b903e812948\",\"TraceId\":\"8517973b-5ff4-410d-a40b-8b903e812948\",\"deptDT\":\"2026-09-10\",\"arrDT\":null,\"userid\":\"\",\"IsDoubelSeat\":false,\"isDomestic\":\"true\",\"isOneway\":true,\"airline\":\"undefined\",\"VIP_CODE\":\"\",\"VIP_UNIQUE\":\"\",\"Cabin\":0,\"currCode\":\"INR\",\"appType\":1,\"isSingleView\":false,\"ResType\":2,\"IsNBA\":true,\"CouponCode\":\"\",\"IsArmedForce\":false,\"AgentCode\":\"\",\"IsWLAPP\":false,\"IsFareFamily\":false,\"serviceid\":\"EMTSERVICE\",\"serviceDepatment\":\"\",\"IpAddress\":\"\",\"LoginKey\":\"\",\"UUID\":\"\",\"IsAds\":false,\"TKN\":\"4tE3cyz"
+          "request_post_data": "{\"org\":\"DEL\",\"dept\":\"BOM\",\"adt\":\"1\",\"chd\":\"0\",\"inf\":\"0\",\"queryname\":\"b7605b96-0cb0-490c-990f-ff22c1a3cf03\",\"TraceId\":\"b7605b96-0cb0-490c-990f-ff22c1a3cf03\",\"deptDT\":\"2026-09-10\",\"arrDT\":null,\"userid\":\"\",\"IsDoubelSeat\":false,\"isDomestic\":\"true\",\"isOneway\":true,\"airline\":\"undefined\",\"VIP_CODE\":\"\",\"VIP_UNIQUE\":\"\",\"Cabin\":0,\"currCode\":\"INR\",\"appType\":1,\"isSingleView\":false,\"ResType\":2,\"IsNBA\":true,\"CouponCode\":\"\",\"IsArmedForce\":false,\"AgentCode\":\"\",\"IsWLAPP\":false,\"IsFareFamily\":false,\"serviceid\":\"EMTSERVICE\",\"serviceDepatment\":\"\",\"IpAddress\":\"\",\"LoginKey\":\"\",\"UUID\":\"\",\"IsAds\":false,\"TKN\":\"Jp+8k7y"
         },
         {
           "url": "https://flightservice-node.easemytrip.com//Addons/CurrencyConverter",
@@ -423,7 +423,7 @@
           "iminp": "int: 0",
           "imaxp": "int: 0",
           "I_Ins": "bool: True",
-          "TID": "str: '8517973b-5ff4-410d-a40b-8b903e812948'",
+          "TID": "str: 'b7605b96-0cb0-490c-990f-ff22c1a3cf03'",
           "C": {
             "6E": "str: 'IndiGo'",
             "SG": "str: 'SpiceJet'",
@@ -3059,7 +3059,7 @@
           "sortingType": "str: '0'",
           "FareTypeUI": "int: 0",
           "AD": "null",
-          "Location": "str: 'Flint Hill||20.25.34.34,34.110.215.6, 35'"
+          "Location": "str: 'Chicago|EASEMYTRIPINSPECIAL|135.232.177.'"
         }
       }
     }
@@ -3072,7 +3072,7 @@
       "allowed": true,
       "reason": "robots.txt fetched (HTTP 200, 1430 bytes); path allowed",
       "crawl_delay": null,
-      "checked_at": 1787714916.9423392
+      "checked_at": 1787715735.3188686
     },
     {
       "url": "https://flight.easemytrip.com/FlightList/Index?srch=DEL-Delhi-India|BOM-Mumbai-India|10/09/2026&px=1-0-0&cbn=0&ar=undefined&isow=true&isdm=true&lang=en-us&IsDoubleSeat=false&CCODE=IN&curr=INR",
@@ -3081,7 +3081,7 @@
       "allowed": true,
       "reason": "robots.txt fetched (HTTP 200, 260 bytes); path allowed",
       "crawl_delay": null,
-      "checked_at": 1787714938.6283967
+      "checked_at": 1787715772.373993
     }
   ]
 }
