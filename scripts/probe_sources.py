@@ -365,6 +365,16 @@ async def main() -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2, default=str))
 
+    # One file per source whose payload we captured. Separate from the report because the
+    # report is a summary a human reads, and this is the reference an extractor is written
+    # against — different audiences, different lifetimes.
+    for r in results:
+        if not r.payload_schema:
+            continue
+        schema_path = out.parent / f"probe_payload_schema_{r.name}.json"
+        schema_path.write_text(json.dumps(r.payload_schema, indent=2, default=str))
+        print(f"wrote payload skeleton: {schema_path}")
+
     print("\n=== SOURCE PROBE SUMMARY ===")
     for r in results:
         print(f"{r.name:14s} {r.verdict:24s} robots={r.robots_allowed} status={r.page_status}")

@@ -86,10 +86,24 @@ jobs:
           git add data/raw data/index data/collection_health.json
           if git diff --staged --quiet; then
             echo "nothing to commit"
-          else
-            git commit -m "collect: $(TZ=Asia/Kolkata date +%Y-%m-%d) observations and rebuilt index"
-            git push
+            exit 0
           fi
+          git commit -m "collect: $(TZ=Asia/Kolkata date +%Y-%m-%d) observations and rebuilt index"
+          # Rebase before pushing. A human committing to main while the 02:00 run is in
+          # flight would otherwise reject this push, and the day's observations would exist
+          # only inside a finished job. You cannot re-scrape a fare, so this retries.
+          for attempt in 1 2 3; do
+            if git push; then
+              echo "pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "push rejected (attempt $attempt) — rebasing onto origin/main and retrying"
+            git pull --rebase --autostash origin main || break
+            sleep $((attempt * 10))
+          done
+          # Failing here would be the wrong call: the rows are already in Postgres and in the
+          # run artifact, and a red run over a git race would train us to ignore red runs.
+          echo "::warning::could not push the day's observations after 3 attempts; they are in Postgres and in the run artifact"
 
       - name: Publish the run log as an artifact
         if: always()
