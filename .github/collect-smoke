@@ -1,0 +1,7 @@
+Touch this file and push to run a small DRY collection against live fares.
+It writes nothing — it exists to prove the extractor works before the 02:00 IST cron
+commits a real day.
+
+2026-08-26 — first live test of the EaseMyTrip extractor written from the probe's
+payload skeleton. Eight cells, one source. Looking for real INR fares and carrier codes
+in the log, not for rows in the database.

@@ -33,11 +33,13 @@ class Ixigo(Source):
     spec = SourceSpec(
         name="ixigo",
         domain="www.ixigo.com",
-        enabled=True,
+        enabled=False,
         needs_browser=True,
         confidence="unverified",
-        notes="Metasearch. Aggregates several OTAs, so its 'cheapest' is close to the "
-        "market minimum a consumer would actually find.",
+        notes="Off for now. Probed twice (15 s and 30 s settle) and never emitted a fare "
+        "payload we could see, though the results page itself renders fine. Metasearch, so "
+        "its 'cheapest' would be close to the true market minimum — worth returning to once "
+        "the first source is boring, which is the whole point of not doing it today.",
     )
 
     def search_url(self, cell: Cell) -> str:

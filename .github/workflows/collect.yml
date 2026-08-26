@@ -15,6 +15,14 @@ name: Daily collection
 on:
   schedule:
     - cron: "30 20 * * *"
+  # Touching .github/collect-smoke runs a small DRY collection: it exercises the real
+  # extractor against live fares and writes nothing. Dry deliberately — a partial run
+  # committed into data/raw would create a first collection day made of ten cells instead
+  # of a hundred and twenty, and the base period of a chained index is not a thing you
+  # want built out of a smoke test.
+  push:
+    paths:
+      - ".github/collect-smoke"
   workflow_dispatch:
     inputs:
       sources:
@@ -61,7 +69,12 @@ jobs:
           echo "UTC now: $(date -u)"
           echo "IST now: $(TZ=Asia/Kolkata date)"
 
+      - name: Smoke collection (dry, push-triggered only)
+        if: github.event_name == 'push'
+        run: python -m collector.run --limit 8 --sources easemytrip --dry-run -v
+
       - name: Collect
+        if: github.event_name != 'push'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           APIX_SCHEDULED_IST: "02:00"
@@ -73,13 +86,13 @@ jobs:
             ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
 
       - name: Rebuild the index from everything collected so far
-        if: github.event.inputs.dry_run != 'true'
+        if: github.event_name != 'push' && github.event.inputs.dry_run != 'true'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m index.build --source csv --out data/index || echo "index build skipped (needs 2+ collection days)"
 
       - name: Commit the day's observations
-        if: github.event.inputs.dry_run != 'true'
+        if: github.event_name != 'push' && github.event.inputs.dry_run != 'true'
         run: |
           git config user.name  "apix-collector"
           git config user.email "actions@github.com"
