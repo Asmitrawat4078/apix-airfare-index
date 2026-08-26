@@ -28,9 +28,13 @@ api = ["fastapi>=0.111", "uvicorn[standard]>=0.30"]
 dashboard = ["streamlit>=1.35", "plotly>=5.22"]
 dev = [
     "pytest>=8.2",
-    "ruff>=0.4",
-    "black>=24.4",
-    "pandera>=0.19",
+    # ruff and black are pinned to a minor line on purpose. An unpinned formatter means CI
+    # installs whatever shipped this week and can fail a build over a style rule that did
+    # not exist when the code was written — a red run that teaches you nothing and trains
+    # you to ignore red runs.
+    "ruff>=0.15,<0.16",
+    "black>=26.0,<27.0",
+    "pandera>=0.20,<1.0",
     "beautifulsoup4>=4.12",
     "playwright>=1.44",
 ]
@@ -60,4 +64,9 @@ target-version = ["py311"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Put the repo root on sys.path for the test run. Without this, `pytest` works when invoked
+# as `python -m pytest` (which adds the cwd) and fails as a bare `pytest` (which does not) —
+# so the suite passed on a laptop and failed in CI for a reason that had nothing to do with
+# the code. Declaring it here makes both invocations behave the same.
+pythonpath = ["."]
 filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]

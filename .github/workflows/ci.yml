@@ -21,7 +21,7 @@ jobs:
           ruff check .
           black --check .
       - name: Index maths and extraction tests
-        run: pytest -q --tb=short
+        run: python -m pytest -q --tb=short
       - name: The basket must be reproducible from its source data
         # If this fails, someone edited basket.yaml by hand. The basket is frozen and its
         # provenance has to survive; a hand-edited weight is an unaudited weight.
