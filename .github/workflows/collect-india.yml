@@ -1,0 +1,127 @@
+name: Daily collection (India runner)
+
+# The second vantage point.
+#
+# Cleartrip serves an Indian IP normally and returns HTTP 403 on robots.txt to a US
+# datacentre, so it can only be collected from a machine in India. This workflow runs on a
+# self-hosted runner registered on the project owner's own computer. Everything else — the
+# schedule, the robots gate, the rate limiting, the audit trail, the commit — is identical
+# to the cloud collector. The only thing that changes is where the request comes from.
+#
+# Two runners collecting different sources into the same day's file is intentional and safe:
+# rows carry their `source`, and --resume keys on (source, origin, destination, lead_time),
+# so neither run can skip or clobber the other's cells.
+#
+# Deliberately offset from the cloud run's 02:00 IST. Both push to main, and while the
+# collector retries a rejected push, not colliding in the first place is cheaper.
+# 02:40 IST = 21:10 UTC the previous day.
+
+on:
+  schedule:
+    - cron: "10 21 * * *"
+  push:
+    paths:
+      - ".github/collect-india-smoke"
+  workflow_dispatch:
+    inputs:
+      sources:
+        description: "Comma-separated sources (default: cleartrip)"
+        required: false
+      limit:
+        description: "Only the first N cells (smoke test)"
+        required: false
+      dry_run:
+        description: "Collect but write nothing"
+        type: boolean
+        default: false
+
+concurrency:
+  group: apix-collection-india
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    # Requires a self-hosted runner labelled `india`. See docs/self-hosted-runner.md.
+    runs-on: [self-hosted, india]
+    # Short on purpose. If the machine is asleep the job queues; a long timeout would leave
+    # it hanging for hours and mask the fact that the runner is down. Failing fast and
+    # visibly is the behaviour that gets a missed night noticed the next morning.
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[collect]"
+          python -m playwright install chromium
+
+      - name: Confirm we are collecting from India
+        # The whole point of this runner is its geography. Logging it every night means a
+        # change — a VPN left on, a move to a cloud box — is traceable rather than mysterious.
+        run: |
+          curl -s https://ipinfo.io/json || true
+          echo "UTC now: $(date -u)"
+
+      - name: Collect
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APIX_SCHEDULED_IST: "02:40"
+        run: |
+          python -m collector.run \
+            --jitter \
+            --resume \
+            --sources "${{ github.event.inputs.sources || 'cleartrip' }}" \
+            ${{ github.event.inputs.limit && format('--limit {0}', github.event.inputs.limit) || '' }} \
+            ${{ (github.event.inputs.dry_run == 'true' || github.event_name == 'push') && '--dry-run' || '' }}
+
+      - name: Rebuild the index from everything collected so far
+        if: github.event.inputs.dry_run != 'true' && github.event_name != 'push'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m index.build --source csv --out data/index || echo "index build skipped (needs 2+ collection days)"
+
+      - name: Commit the day's observations
+        if: github.event.inputs.dry_run != 'true' && github.event_name != 'push'
+        run: |
+          git config user.name  "apix-collector-india"
+          git config user.email "actions@github.com"
+          git add data/raw data/index data/collection_health.json
+          if git diff --staged --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          git commit -m "collect(india): $(date +%Y-%m-%d) observations and rebuilt index"
+          for attempt in 1 2 3; do
+            if git push; then
+              echo "pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "push rejected (attempt $attempt) — rebasing onto origin/main and retrying"
+            git pull --rebase --autostash origin main || break
+            sleep $((attempt * 10))
+          done
+          echo "::warning::could not push after 3 attempts; observations are in the run artifact"
+
+      - name: Publish the run log as an artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collection-india-${{ github.run_id }}
+          path: |
+            data/collection_health.json
+            data/raw/
+          retention-days: 90
+
+      - name: Clean the workspace
+        # Self-hosted runners do NOT get a fresh machine each run. Without this, the repo
+        # accumulates state across nights and a stale file can silently change a result.
+        if: always()
+        run: git clean -fdx -e .venv || true
