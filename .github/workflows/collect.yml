@@ -81,6 +81,7 @@ jobs:
         run: |
           python -m collector.run \
             --jitter \
+            --resume \
             ${{ github.event.inputs.sources && format('--sources {0}', github.event.inputs.sources) || '' }} \
             ${{ github.event.inputs.limit && format('--limit {0}', github.event.inputs.limit) || '' }} \
             ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
